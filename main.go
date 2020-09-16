@@ -1,4 +1,4 @@
-package k8sMLer_client_go
+package main
 
 import (
 	"context"
@@ -29,15 +29,15 @@ func main() {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.StringVar(&namespaceName, "namespace", "", "namespace name")
+	flag.StringVar(&serviceName, "service", "", "service name")
+	flag.StringVar(&labelName, "label", "", "label name") // the label name is not required
+	flag.Parse()
 	if namespaceName == "" {
 		log.Fatal("The namespace is required[namespace=]")
 	}
-	flag.StringVar(&serviceName, "service", "", "service name")
 	if serviceName == "" {
 		log.Fatal("The service name is required[service=]")
 	}
-	flag.StringVar(&labelName, "label", "", "label name") // the label name is not required
-	flag.Parse()
 
 	// create the client
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
