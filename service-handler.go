@@ -6,12 +6,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func ServiceCreate(service *apiv1.Service, serviceName string, labelName string) {
+func ServiceReady(service *apiv1.Service, serviceName string, labelName string) {
 	*service = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 			Labels: map[string]string{
-				"app": labelName,
+				labelName: labelName,
 			},
 			Annotations: nil,
 		},
