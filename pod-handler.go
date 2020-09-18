@@ -33,10 +33,11 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 			Volumes: nil,
 			Containers: []apiv1.Container{
 				{
-					Name:       containName,
-					Image:      "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
-					Command:    []string{"/bin/sh", "-c"},
-					Args:       []string{"tail -f /dev/null"},
+					Name:    containName,
+					Image:   "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
+					Command: []string{"/bin/sh", "-c"},
+					Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
+					//Args:       []string{"tail -f /dev/null"},
 					WorkingDir: "",
 					Ports:      []apiv1.ContainerPort{},
 					Env:        nil,

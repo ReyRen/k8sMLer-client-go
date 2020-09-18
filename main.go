@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"k8s.io/client-go/kubernetes"
-
 	//"k8s.io/client-go/util/retry"
 	"log"
 	//"os"
@@ -106,6 +105,20 @@ func main() {
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}
+	case "log":
+		fmt.Println("get pods log...")
+		result := podClient.GetLogs(kindName, &apiv1.PodLogOptions{
+			Container:  "",
+			Follow:     true,
+			Previous:   false,
+			Timestamps: true, // timestamps
+		})
+		podLogs, err := result.Stream(context.TODO())
+		if err != nil {
+			log.Fatalln("podLogs stream err : ", err)
+		}
+		defer podLogs.Close()
+		LogMonitor(podLogs)
 	default:
 		fmt.Println("list operation...")
 		switch resource {

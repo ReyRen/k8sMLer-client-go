@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"io"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -52,4 +55,20 @@ func GetRandomString(l int) string {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
+}
+
+func LogMonitor(rd io.Reader) {
+	r := bufio.NewReader(rd)
+	for {
+		line, err := r.ReadBytes('\n')
+		if err == io.EOF {
+			//time.Sleep(500 * time.Millisecond)
+			break
+		} else if err != nil {
+			log.Fatalln("read err: ", err)
+		}
+		go func() {
+			os.Stdout.Write(line)
+		}()
+	}
 }
