@@ -18,11 +18,11 @@ func ParseArg(kubeconfig *string, operator *string, resource *string, namespaceN
 		flag.StringVar(kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.StringVar(operator, "o", "list", "list,create,delete")
-	flag.StringVar(resource, "r", "", "resource type, svc and pod support") // pod, svc
-	flag.StringVar(namespaceName, "n", "", "namespace name")
-	flag.StringVar(kindName, "k", "", "kind name")
-	flag.StringVar(labelName, "l", "", "label name") // the label name is not required
-	flag.Int64Var(gpuQuantity, "g", int64(0), "gpu quantities")
+	flag.StringVar(resource, "r", "", "service,pod") // pod, svc
+	flag.StringVar(namespaceName, "n", "", "namespaceName")
+	flag.StringVar(kindName, "k", "", "kindName[svcName, podName]")
+	flag.StringVar(labelName, "l", "", "labelName") // the label name is not required
+	flag.Int64Var(gpuQuantity, "g", int64(0), "gpu quantities[0,1,2..]")
 	flag.Parse()
 
 	if *resource == "" {
