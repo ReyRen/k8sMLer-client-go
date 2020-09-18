@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int64) {
+func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64) {
 	// assemble a container name
 	tmpString := GetRandomString(15)
 	containName := podName + "-container-" + tmpString
@@ -19,9 +19,6 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 	var resourceQuantity resource.Quantity
 	resourceQuantity.Set(gpuQuantity)
 	resourceLimit["nvidia.com/gpu"] = resourceQuantity
-
-	// Termination
-	gracePeriodSeconds := int64(0)
 
 	*pods = apiv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -58,7 +55,7 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 				},
 			},
 			RestartPolicy:                 "",
-			TerminationGracePeriodSeconds: &gracePeriodSeconds,
+			TerminationGracePeriodSeconds: gracePeriodSeconds,
 			//NodeSelector: map[string]string{labelName: labelName},
 			NodeName:          "", // auto
 			Hostname:          "",

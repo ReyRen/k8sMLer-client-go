@@ -14,18 +14,19 @@ import (
 	"time"
 )
 
-func ParseArg(kubeconfig *string, operator *string, resource *string, namespaceName *string, kindName *string, labelName *string, gpuQuantity *int64) {
+func ParseArg(kubeconfig *string, operator *string, resource *string, namespaceName *string, kindName *string, labelName *string, gpuQuantity *int64, cap *string) {
 	if home := homedir.HomeDir(); home != "" { // HomeDir returns the home directory for the current user
 		flag.StringVar(kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional)absolute path to the kubeconfig file")
 	} else {
 		flag.StringVar(kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-	flag.StringVar(operator, "o", "list", "list,create,delete")
-	flag.StringVar(resource, "r", "", "service,pod") // pod, svc
+	flag.StringVar(operator, "o", "list", "list,create,delete,log")
+	flag.StringVar(resource, "r", "", "service,pod,pvc") // pod, svc
 	flag.StringVar(namespaceName, "n", "", "namespaceName")
 	flag.StringVar(kindName, "k", "", "kindName[svcName, podName]")
 	flag.StringVar(labelName, "l", "", "labelName") // the label name is not required
 	flag.Int64Var(gpuQuantity, "g", int64(0), "gpu quantities[0,1,2..]")
+	flag.StringVar(cap, "c", "10Gi", "pvc volume capacity[10Gi,20Gi,30Gi,40Gi,50Gi]")
 	flag.Parse()
 
 	if *resource == "" {

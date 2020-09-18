@@ -6,14 +6,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func ServiceReady(service *apiv1.Service, serviceName string, labelName string) {
+func ServiceReady(service *apiv1.Service, serviceName string, labelName string, gracePeriodSeconds *int64) {
 	*service = apiv1.Service{
+
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 			Labels: map[string]string{
 				labelName: labelName,
 			},
-			Annotations: nil,
+			Annotations:                nil,
+			DeletionGracePeriodSeconds: gracePeriodSeconds,
 		},
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{

@@ -3,22 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/kubernetes"
-	//"k8s.io/client-go/util/retry"
-	"log"
-	//"os"
-	//"text/template/parse"
-
-	//appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"log"
 )
 
 func main() {
-	var kubeconfig, operator, resource, namespaceName, kindName, labelName string
+	var kubeconfig, operator, resource, namespaceName, kindName, labelName, cap string
 	var gpuQuantity int64
 
-	ParseArg(&kubeconfig, &operator, &resource, &namespaceName, &kindName, &labelName, &gpuQuantity)
+	ParseArg(&kubeconfig, &operator, &resource, &namespaceName, &kindName, &labelName, &gpuQuantity, &cap)
 
 	// create k8s-client
 	var clientset *kubernetes.Clientset
@@ -30,6 +25,7 @@ func main() {
 	// define resource
 	svcClient := clientset.CoreV1().Services(namespaceName)
 	podClient := clientset.CoreV1().Pods(namespaceName)
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
 
 	// delete graceful
 	//gracePeriodSeconds := new(int64) // You have a pointer variable which after declaration will be nil
@@ -43,9 +39,9 @@ func main() {
 		fmt.Println("create operation...")
 		switch resource {
 		case "pod":
-			fmt.Println("creating pod...")
 			var pod apiv1.Pod
-			PodReady(&pod, kindName, labelName, gpuQuantity)
+			PodReady(&pod, kindName, labelName, gpuQuantity, &gracePeriodSeconds)
+			fmt.Println("creating pod...")
 			result, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 			if err != nil {
 				log.Fatalln("create the pod err : ", err)
@@ -53,13 +49,22 @@ func main() {
 			fmt.Printf("Created pod %q.\n", result.GetObjectMeta().GetName())
 		case "service":
 			var service apiv1.Service
-			ServiceReady(&service, kindName, labelName)
+			ServiceReady(&service, kindName, labelName, &gracePeriodSeconds)
 			fmt.Println("creating service...")
 			result, err := svcClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 			if err != nil {
 				log.Fatalln("create the service err : ", err)
 			}
 			fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
+		case "pvc":
+			var pvcs apiv1.PersistentVolumeClaim
+			PvcReady(&pvcs, kindName, labelName, &gracePeriodSeconds, cap)
+			fmt.Println("creating pvc...")
+			result, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
+			if err != nil {
+				log.Fatalln("create the pvc err : ", err)
+			}
+			fmt.Printf("Created persistentvolumeclaim %q.\n", result.GetObjectMeta().GetName())
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}
