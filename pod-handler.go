@@ -10,6 +10,9 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 	// assemble a container name
 	tmpString := GetRandomString(15)
 	containName := podName + "-container-" + tmpString
+	// assemble a pod name
+	tmpString = GetRandomString(15)
+	podName = podName + "-pod-" + tmpString
 
 	// assemble a resource limit
 	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)

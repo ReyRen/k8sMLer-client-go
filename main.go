@@ -32,6 +32,13 @@ func main() {
 	svcClient := clientset.CoreV1().Services(namespaceName)
 	podClient := clientset.CoreV1().Pods(namespaceName)
 
+	// delete graceful
+	//gracePeriodSeconds := new(int64) // You have a pointer variable which after declaration will be nil
+	// if you want to set the pointed value, it must point to something
+	// Attempting to dereference a nil pointer is a runtime panic
+	//gracePeriodSeconds = new(int64)
+	gracePeriodSeconds := int64(0) // delete immediately
+
 	switch operator {
 	case "create":
 		fmt.Println("create operation...")
@@ -62,14 +69,18 @@ func main() {
 		switch resource {
 		case "pod":
 			fmt.Println("delete pod...")
+			deletePolicy := metav1.DeletePropagationForeground
+			if err := podClient.Delete(context.TODO(), kindName, metav1.DeleteOptions{
+				GracePeriodSeconds: &gracePeriodSeconds,
+				PropagationPolicy:  &deletePolicy,
+			}); err != nil {
+				log.Fatalln("delete pod err:", err)
+			}
+			fmt.Printf("deleted pod %s\n", kindName)
+			// podClient.DeleteCollection() delete by label collections
 		case "service":
 			fmt.Println("delete service...")
 			deletePolicy := metav1.DeletePropagationForeground
-			//gracePeriodSeconds := new(int64) // You have a pointer variable which after declaration will be nil
-			// if you want to set the pointed value, it must point to something
-			// Attempting to dereference a nil pointer is a runtime panic
-			//gracePeriodSeconds = new(int64)
-			gracePeriodSeconds := int64(0) // delete immediately
 			if err := svcClient.Delete(context.TODO(), kindName, metav1.DeleteOptions{
 				GracePeriodSeconds: &gracePeriodSeconds,
 				PropagationPolicy:  &deletePolicy,
