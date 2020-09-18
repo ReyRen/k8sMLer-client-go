@@ -16,8 +16,9 @@ go build .
 
 **USAGE:**
 ```
--o={create、delete、list}[list]
-	表示操作的类型: 创建、删除和展示 
+-o={create、delete、list、log}[list]
+	表示操作的类型: 创建、删除、展示和容器日志显示
+	目前只针对单容器pod日志显示 
 -n={string}[""]
 	表示指定已有的命名空间，这个参数是必须存在的
 -r={pod,service}[""]
