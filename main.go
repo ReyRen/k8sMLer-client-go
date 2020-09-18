@@ -68,16 +68,31 @@ func main() {
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
-			fmt.Println("delete pod...")
 			deletePolicy := metav1.DeletePropagationForeground
-			if err := podClient.Delete(context.TODO(), kindName, metav1.DeleteOptions{
-				GracePeriodSeconds: &gracePeriodSeconds,
-				PropagationPolicy:  &deletePolicy,
-			}); err != nil {
-				log.Fatalln("delete pod err:", err)
+			if kindName != "" {
+				fmt.Println("delete pod...")
+				if err := podClient.Delete(context.TODO(), kindName, metav1.DeleteOptions{
+					GracePeriodSeconds: &gracePeriodSeconds,
+					PropagationPolicy:  &deletePolicy,
+				}); err != nil {
+					log.Fatalln("delete pod err:", err)
+				}
+				fmt.Printf("deleted pod %s\n", kindName)
+			} else {
+				fmt.Println("delete pods...")
+				if err := podClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
+					GracePeriodSeconds: &gracePeriodSeconds,
+					PropagationPolicy:  &deletePolicy,
+				}, metav1.ListOptions{
+					TypeMeta:      metav1.TypeMeta{},
+					LabelSelector: labelName,
+					FieldSelector: "",
+					Watch:         true,
+				}); err != nil {
+					log.Fatalln("delete pods err:", err)
+				}
+				fmt.Printf("delete all pods under label: %s\n", labelName)
 			}
-			fmt.Printf("deleted pod %s\n", kindName)
-			// podClient.DeleteCollection() delete by label collections
 		case "service":
 			fmt.Println("delete service...")
 			deletePolicy := metav1.DeletePropagationForeground
