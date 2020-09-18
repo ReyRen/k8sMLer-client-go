@@ -96,6 +96,13 @@ func main() {
 		switch resource {
 		case "pod":
 			fmt.Println("list pod...")
+			list, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
+			if err != nil {
+				log.Fatalln("list pod err: ", err)
+			}
+			for _, s := range list.Items {
+				fmt.Printf(" * [%s] pod in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
+			}
 		case "service":
 			fmt.Println("list service...")
 			list, err := svcClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
