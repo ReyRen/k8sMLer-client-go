@@ -26,6 +26,7 @@ func main() {
 	svcClient := clientset.CoreV1().Services(namespaceName)
 	podClient := clientset.CoreV1().Pods(namespaceName)
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	pvClient := clientset.CoreV1().PersistentVolumes()
 
 	// delete graceful
 	//gracePeriodSeconds := new(int64) // You have a pointer variable which after declaration will be nil
@@ -57,14 +58,22 @@ func main() {
 			}
 			fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
 		case "pvc":
+			// pv need to be created and ready to binging
+			fmt.Println("creating pv...")
+			var pv apiv1.PersistentVolume
+			PvReady(&pv, kindName, labelName, &gracePeriodSeconds, cap)
+			resultPV, err := pvClient.Create(context.TODO(), &pv, metav1.CreateOptions{})
+			if err != nil {
+				log.Fatalln("create the pv err : ", err)
+			}
+			fmt.Printf("Created persistentvolume %q.\n", resultPV.GetObjectMeta().GetName())
+
 			var pvcs apiv1.PersistentVolumeClaim
 			PvcReady(&pvcs, kindName, labelName, &gracePeriodSeconds, cap)
 			fmt.Println("creating pvc...")
-			result, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
-			if err != nil {
-				log.Fatalln("create the pvc err : ", err)
-			}
-			fmt.Printf("Created persistentvolumeclaim %q.\n", result.GetObjectMeta().GetName())
+			resultPVC, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
+
+			fmt.Printf("Created persistentvolumeclaim %q.\n", resultPVC.GetObjectMeta().GetName())
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}

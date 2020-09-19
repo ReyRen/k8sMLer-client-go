@@ -26,9 +26,9 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName strin
 		},
 		Spec: apiv1.PersistentVolumeClaimSpec{
 			AccessModes: []apiv1.PersistentVolumeAccessMode{apiv1.ReadWriteMany},
-			/*Selector:         &metav1.LabelSelector{
+			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{labelName: labelName},
-			},*/
+			},
 			Resources: apiv1.ResourceRequirements{
 				Requests: resourceLimit,
 			},
@@ -37,4 +37,5 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName strin
 			VolumeMode:       nil, // by default is the raw block
 		},
 	}
+
 }
