@@ -8,6 +8,12 @@ import (
 
 func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName string, gracePeriodSeconds *int64, cap string) {
 
+	// sc name
+	scName := "nfs-sc"
+
+	// annotation key
+	//annKey := "volume.beta.kubernetes.io/storage-class"
+
 	// assemble pvc name
 	tmpString := GetRandomString(15)
 	pvcName = pvcName + "-pvc-" + tmpString
@@ -19,21 +25,20 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName strin
 
 	*pvcs = apiv1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:                       pvcName,
-			DeletionGracePeriodSeconds: gracePeriodSeconds,
-			Labels:                     map[string]string{labelName: labelName},
-			Annotations:                nil,
+			Name:        pvcName,
+			Labels:      map[string]string{labelName: labelName},
+			Annotations: nil,
 		},
 		Spec: apiv1.PersistentVolumeClaimSpec{
 			AccessModes: []apiv1.PersistentVolumeAccessMode{apiv1.ReadWriteMany},
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{labelName: labelName},
-			},
+			/*Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{labelName: labelName}, // used to binding with pv, if pv create manual
+			},*/
 			Resources: apiv1.ResourceRequirements{
 				Requests: resourceLimit,
 			},
 			VolumeName:       "", // binding to which PV
-			StorageClassName: nil,
+			StorageClassName: &scName,
 			VolumeMode:       nil, // by default is the raw block
 		},
 	}

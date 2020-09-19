@@ -10,10 +10,10 @@ import (
 )
 
 func main() {
-	var kubeconfig, operator, resource, namespaceName, kindName, labelName, cap string
+	var kubeconfig, operator, resource, namespaceName, kindName, labelName, caps string
 	var gpuQuantity int64
 
-	ParseArg(&kubeconfig, &operator, &resource, &namespaceName, &kindName, &labelName, &gpuQuantity, &cap)
+	ParseArg(&kubeconfig, &operator, &resource, &namespaceName, &kindName, &labelName, &gpuQuantity, &caps)
 
 	// create k8s-client
 	var clientset *kubernetes.Clientset
@@ -26,7 +26,8 @@ func main() {
 	svcClient := clientset.CoreV1().Services(namespaceName)
 	podClient := clientset.CoreV1().Pods(namespaceName)
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-	pvClient := clientset.CoreV1().PersistentVolumes()
+	/* choose to use the StoragClass*/
+	//pvClient := clientset.CoreV1().PersistentVolumes()
 
 	// delete graceful
 	//gracePeriodSeconds := new(int64) // You have a pointer variable which after declaration will be nil
@@ -58,21 +59,24 @@ func main() {
 			}
 			fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
 		case "pvc":
-			// pv need to be created and ready to binging
+			/*choose to use storageclass*/
+			/*// pv need to be created and ready to binging
 			fmt.Println("creating pv...")
 			var pv apiv1.PersistentVolume
-			PvReady(&pv, kindName, labelName, &gracePeriodSeconds, cap)
+			PvReady(&pv, kindName, labelName, &gracePeriodSeconds, caps)
 			resultPV, err := pvClient.Create(context.TODO(), &pv, metav1.CreateOptions{})
 			if err != nil {
 				log.Fatalln("create the pv err : ", err)
 			}
-			fmt.Printf("Created persistentvolume %q.\n", resultPV.GetObjectMeta().GetName())
+			fmt.Printf("Created persistentvolume %q.\n", resultPV.GetObjectMeta().GetName())*/
 
 			var pvcs apiv1.PersistentVolumeClaim
-			PvcReady(&pvcs, kindName, labelName, &gracePeriodSeconds, cap)
+			PvcReady(&pvcs, kindName, labelName, &gracePeriodSeconds, caps)
 			fmt.Println("creating pvc...")
 			resultPVC, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
-
+			if err != nil {
+				log.Fatalln("create the pvc err : ", err)
+			}
 			fmt.Printf("Created persistentvolumeclaim %q.\n", resultPVC.GetObjectMeta().GetName())
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
@@ -153,6 +157,15 @@ func main() {
 			}
 			for _, s := range list.Items {
 				fmt.Printf(" * [%s] svc in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
+			}
+		case "pvc":
+			fmt.Println("list persistentvolumeclaim...")
+			list, err := pvcClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
+			if err != nil {
+				log.Fatalln("list pvc err: ", err)
+			}
+			for _, s := range list.Items {
+				fmt.Printf(" * [%s] pvc in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
 			}
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
