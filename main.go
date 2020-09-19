@@ -120,6 +120,29 @@ func main() {
 				log.Fatalln("delete svc err: ", err)
 			}
 			fmt.Printf("deleted service %s\n", kindName)
+		case "pvc":
+			deletePolicy := metav1.DeletePropagationForeground
+			if kindName != "" {
+				fmt.Println("delete pvc...")
+				if err := pvcClient.Delete(context.TODO(), kindName, metav1.DeleteOptions{
+					GracePeriodSeconds: &gracePeriodSeconds,
+					PropagationPolicy:  &deletePolicy,
+				}); err != nil {
+					log.Fatalln("delete pvc err:", err)
+				}
+				fmt.Printf("deleted pvc %s\n", kindName)
+			} else {
+				fmt.Println("delete pvcs...")
+				if err := pvcClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
+					GracePeriodSeconds: &gracePeriodSeconds,
+					PropagationPolicy:  &deletePolicy,
+				}, metav1.ListOptions{
+					LabelSelector: labelName,
+				}); err != nil {
+					log.Fatalln("delete pvcs err:", err)
+				}
+				fmt.Printf("delete all pvcs under label: %s\n", labelName)
+			}
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}
