@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"log"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64) {
@@ -64,5 +68,56 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 			Priority:          nil,
 		},
 		Status: apiv1.PodStatus{},
+	}
+}
+
+func Create_pod(podClient v1.PodInterface, podName string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64) {
+	var pod apiv1.Pod
+
+	PodReady(&pod, podName, labelName, gpuQuantity, gracePeriodSeconds)
+	fmt.Println("creating pod...")
+	result, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
+	if err != nil {
+		log.Fatalln("create the pod err : ", err)
+	}
+	fmt.Printf("Created pod %q.\n", result.GetObjectMeta().GetName())
+}
+
+func List_pod(podClient v1.PodInterface, labelName string) {
+	fmt.Println("list pod...")
+	list, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
+	if err != nil {
+		log.Fatalln("list pod err: ", err)
+	}
+	for _, s := range list.Items {
+		fmt.Printf(" * [%s] pod in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
+	}
+}
+
+func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gracePeriodSeconds *int64) {
+	deletePolicy := metav1.DeletePropagationForeground
+	if podName != "" {
+		fmt.Println("delete pod...")
+		if err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{
+			GracePeriodSeconds: gracePeriodSeconds,
+			PropagationPolicy:  &deletePolicy,
+		}); err != nil {
+			log.Fatalln("delete pod err:", err)
+		}
+		fmt.Printf("deleted pod %s\n", podName)
+	} else {
+		fmt.Println("delete pods...")
+		if err := podClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
+			GracePeriodSeconds: gracePeriodSeconds,
+			PropagationPolicy:  &deletePolicy,
+		}, metav1.ListOptions{
+			TypeMeta:      metav1.TypeMeta{},
+			LabelSelector: labelName,
+			FieldSelector: "",
+			Watch:         true,
+		}); err != nil {
+			log.Fatalln("delete pods err:", err)
+		}
+		fmt.Printf("delete all pods under label: %s\n", labelName)
 	}
 }
