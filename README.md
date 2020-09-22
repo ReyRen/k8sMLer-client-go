@@ -25,6 +25,9 @@ go build .
 	表示指定资源类型，这个参数是必须存在的
 	如果创建pvc, 请先确保拥有一个名字为"nfs-sc"的nfs storageclass
 	具体创建过程可以参考: [StorageClass-creation](https://github.com/ReyRen/k8sMLer-client-go/blob/master/storage/README.md)
+	当创建pod的时候，会将对应的pvc和sc进行创建并且绑定，使用相同的标签
+	所以在创建pod的时候是可以指定-c和-g的，默认-c=10Gi。删除pod的时候
+	会将之前绑定创建的pvc和svc删除(**NOTE:**命名pod的-k不要带"-")
 -k={string}[""]
 	表示指定创建资源的命名，在创建时可以不指定(推荐指定)
 	但在删除(非标签化删除)、展示(非标签化展示)下必须指定
@@ -48,3 +51,6 @@ NOTE: {}表示可选参数列表，[]表示默认参数
 对issues#1的修复，并且可以创建pvc， 实现了将容器中的日志实时输出到终端. 
 存儲使用StorageClass，可以做到pv和pvc的同步刪除創建
 万成pvc的批量删除和展示
+
+2020.09.22:
+完成了issues#3和issues#4, 当创建和删除pod的时候进行pvc和svc的绑定
