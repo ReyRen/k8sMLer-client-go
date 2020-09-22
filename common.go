@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -72,4 +73,9 @@ func LogMonitor(rd io.Reader) {
 			os.Stdout.Write(line)
 		}()
 	}
+}
+
+func PraseTmpString(tmpString string) (string, string) {
+	rm := strings.Split(tmpString, "-")
+	return rm[len(rm)-1], rm[0]
 }

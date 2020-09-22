@@ -38,18 +38,22 @@ func main() {
 
 	// delete graceful
 	gracePeriodSeconds := int64(0) // delete immediately
+	// genereate the same randomString at the same time
+	tmpString := GetRandomString(15)
 
 	switch operator {
 	case "create":
 		fmt.Println("create operation...")
 		switch resource {
 		case "pod":
-			Create_pod(podClient, kindName, labelName, gpuQuantity, &gracePeriodSeconds)
+			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
+			realPvcName := Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
+			Create_pod(podClient, kindName, tmpString, labelName, gpuQuantity, &gracePeriodSeconds, realPvcName)
 		case "service":
-			Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
+			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
 		case "pvc":
 			/*choose to use storageclass*/
-			Create_pvc(pvcClient, kindName, labelName, &gracePeriodSeconds, caps)
+			_ = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}
@@ -57,7 +61,10 @@ func main() {
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
+			endStr, startStr := PraseTmpString(kindName)
 			Delete_pod(podClient, kindName, labelName, &gracePeriodSeconds)
+			Delete_service(svcClient, startStr+"-svc-"+endStr, &gracePeriodSeconds)
+			Delete_pvc(pvcClient, startStr+"-pvc-"+endStr, labelName, &gracePeriodSeconds)
 		case "service":
 			Delete_service(svcClient, kindName, &gracePeriodSeconds)
 		case "pvc":

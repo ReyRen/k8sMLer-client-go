@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName string, gracePeriodSeconds *int64, cap string) {
+func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, cap string) string {
 
 	// sc name
 	scName := "nfs-sc"
@@ -19,7 +19,6 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName strin
 	//annKey := "volume.beta.kubernetes.io/storage-class"
 
 	// assemble pvc name
-	tmpString := GetRandomString(15)
 	pvcName = pvcName + "-pvc-" + tmpString
 
 	// assemble resource limit
@@ -46,18 +45,20 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, labelName strin
 			VolumeMode:       nil, // by default is the raw block
 		},
 	}
+	return pvcName
 }
 
-func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, labelName string, gracePeriodSeconds *int64, caps string) {
+func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, caps string) string {
 	var pvcs apiv1.PersistentVolumeClaim
 
-	PvcReady(&pvcs, pvcName, labelName, gracePeriodSeconds, caps)
+	realName := PvcReady(&pvcs, pvcName, tmpString, labelName, gracePeriodSeconds, caps)
 	fmt.Println("creating pvc...")
 	resultPVC, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
 	if err != nil {
 		log.Fatalln("create the pvc err : ", err)
 	}
 	fmt.Printf("Created persistentvolumeclaim %q.\n", resultPVC.GetObjectMeta().GetName())
+	return realName
 }
 
 func List_pvc(pvcClient v1.PersistentVolumeClaimInterface, labelName string) {

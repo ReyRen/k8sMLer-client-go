@@ -10,13 +10,15 @@ import (
 	"log"
 )
 
-func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64) {
+func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string) {
 	// assemble a container name
-	tmpString := GetRandomString(15)
 	containName := podName + "-container-" + tmpString
 	// assemble a pod name
-	tmpString = GetRandomString(15)
 	podName = podName + "-pod-" + tmpString
+
+	// volumeMount
+	mountPath := "/usr/share/horovod"
+	mountName := podName + "-mount-" + tmpString
 
 	// assemble a resource limit
 	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)
@@ -31,7 +33,16 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 			Annotations: nil, // need for multus-cni
 		},
 		Spec: apiv1.PodSpec{
-			Volumes: nil,
+			Volumes: []apiv1.Volume{
+				{
+					Name: mountName,
+					VolumeSource: apiv1.VolumeSource{
+						PersistentVolumeClaim: &apiv1.PersistentVolumeClaimVolumeSource{
+							ClaimName: pvcName,
+						},
+					},
+				},
+			},
 			Containers: []apiv1.Container{
 				{
 					Name:    containName,
@@ -46,10 +57,12 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 						Limits:   resourceLimit,
 						Requests: nil,
 					},
-					VolumeMounts:             nil,
-					VolumeDevices:            nil,
-					Lifecycle:                nil,
-					TerminationMessagePath:   "",
+					VolumeMounts: []apiv1.VolumeMount{
+						{
+							Name:      mountName,
+							MountPath: mountPath,
+						},
+					},
 					TerminationMessagePolicy: apiv1.TerminationMessageFallbackToLogsOnError,
 					/*
 						TerminationMessageFallbackToLogsOnError will read the most recent contents of the container logs
@@ -71,10 +84,10 @@ func PodReady(pods *apiv1.Pod, podName string, labelName string, gpuQuantity int
 	}
 }
 
-func Create_pod(podClient v1.PodInterface, podName string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64) {
+func Create_pod(podClient v1.PodInterface, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string) {
 	var pod apiv1.Pod
 
-	PodReady(&pod, podName, labelName, gpuQuantity, gracePeriodSeconds)
+	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName)
 	fmt.Println("creating pod...")
 	result, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
