@@ -52,9 +52,11 @@ type Ids struct {
 
 func (c *Client) readPump() {
 	defer func() {
+		fmt.Println("111111111111")
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
+	fmt.Println("222222222")
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -68,14 +70,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		if c.userIds.Uid == 0 && c.userIds.Tid == 0 {
-			// first initialize
-			err_json := json.Unmarshal(message, c.userIds)
-			if err_json != nil {
-				log.Fatalln("json err: ", err_json)
-			}
-			break
-		}
+		fmt.Printf("messages: %s\n", message)
 		//fmt.Printf("the received msg when connected is : %s \n", u)
 		//fmt.Println(c.uim.Tid)*/
 		//c.hub.broadcast <- message
@@ -140,8 +135,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		//log.Printf("upgrade err: %v\n", err)
 		return
 	}
-
-	// initialize client
+	// initialize clie
 	var ids Ids
 	client := &Client{
 		hub:     hub,
@@ -150,8 +144,23 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		send:    nil,
 		addr:    conn.RemoteAddr().String(),
 	}
+	_, message, err := client.conn.ReadMessage()
+	if err != nil {
+		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			log.Printf("error: %v", err)
+		}
+	}
+	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+	fmt.Printf("messages: %s\n", message)
+	// first initialize
+	errJson := json.Unmarshal(message, &client.userIds)
+	if errJson != nil {
+		log.Fatalln("json err: ", errJson)
+	}
+
 	client.hub.register <- client
-	go client.readPump()
+
 	fmt.Printf("%s is logged in and registered, UID:%d, TID:%d\n", client.addr, client.userIds.Uid, client.userIds.Tid)
+	go client.readPump()
 	go client.writePump()
 }
