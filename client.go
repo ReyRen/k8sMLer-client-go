@@ -39,12 +39,6 @@ type Client struct {
 	addr    string
 }
 
-/*// define registered map y
-type clientMapKey struct {
-	ids Ids
-	broadcast chan []byte
-}*/
-
 type Ids struct {
 	Uid int `json:"uid"`
 	Tid int `json:"tid"`
@@ -52,11 +46,9 @@ type Ids struct {
 
 func (c *Client) readPump() {
 	defer func() {
-		fmt.Println("111111111111")
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	fmt.Println("222222222")
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -71,9 +63,7 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		fmt.Printf("messages: %s\n", message)
-		//fmt.Printf("the received msg when connected is : %s \n", u)
-		//fmt.Println(c.uim.Tid)*/
-		//c.hub.broadcast <- message
+
 		currentList := c.hub.clients[c.userIds].Head.next
 		for currentList != nil {
 			currentList.client.send <- message
@@ -144,6 +134,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		send:    nil,
 		addr:    conn.RemoteAddr().String(),
 	}
+
+	//read first connected
 	_, message, err := client.conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -151,7 +143,6 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-	fmt.Printf("messages: %s\n", message)
 	// first initialize
 	errJson := json.Unmarshal(message, &client.userIds)
 	if errJson != nil {
@@ -160,7 +151,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	client.hub.register <- client
 
-	fmt.Printf("%s is logged in and registered, UID:%d, TID:%d\n", client.addr, client.userIds.Uid, client.userIds.Tid)
+	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 	go client.readPump()
 	go client.writePump()
 }

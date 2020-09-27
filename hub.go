@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	//"github.com/gorilla/websocket"
 )
 
 // fine the linklist
@@ -80,7 +79,7 @@ func (list *SameIdsLinkList) PrintList() {
 		fmt.Println("INode%d,value:%v --> ", i, current.client.addr)
 		current = current.next
 	}
-	fmt.Printf("Node%d value:%v\n", i+1, current.client.addr)
+	fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
 	return
 }
 
@@ -110,14 +109,17 @@ func (h *Hub) run() {
 				headList := NewSocketList()
 				headList.Append(newNode(client, nil))
 				h.clients[client.userIds] = headList
+				fmt.Printf("userIds[%d, %d]: -- ", client.userIds.Uid, client.userIds.Tid)
 				headList.PrintList()
 			} else {
 				headlist := h.clients[client.userIds]
 				headlist.Append(newNode(client, nil))
+				fmt.Printf("userIds[%d, %d]: -- ", client.userIds.Uid, client.userIds.Tid)
 				headlist.PrintList()
 			}
 		case client := <-h.unregister:
 			h.clients[client.userIds].Remove(client)
+			fmt.Printf("%s is logged out from userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 			if client.send != nil {
 				close(client.send)
 			}
