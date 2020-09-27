@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-func main() {
+func test() {
 	var kubeconfig, operator, resource, namespaceName, kindName, labelName, caps string
 	var gpuQuantity int64
 
