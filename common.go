@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
+	"github.com/gorilla/websocket"
 	"io"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -78,4 +80,32 @@ func LogMonitor(rd io.Reader) {
 func PraseTmpString(tmpString string) (string, string) {
 	rm := strings.Split(tmpString, "-")
 	return rm[len(rm)-1], rm[0]
+}
+
+const (
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+	// Maximum message size allowed from peer.
+	maxMessageSize = 512
+)
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+var (
+	newline = []byte{'\n'}
+	space   = []byte{' '}
+)
+
+func jsonHandler(data []byte, v interface{}) {
+	errJson := json.Unmarshal(data, v)
+	if errJson != nil {
+		log.Fatalln("json err: ", errJson)
+	}
 }

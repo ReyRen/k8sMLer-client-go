@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
@@ -10,38 +9,12 @@ import (
 	"time"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512
-)
-
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
 type Client struct {
 	hub     *Hub
 	conn    *websocket.Conn
-	userIds Ids
+	userIds TrainingData
 	send    chan []byte
 	addr    string
-}
-
-type Ids struct {
-	Uid int `json:"uid"`
-	Tid int `json:"tid"`
 }
 
 func (c *Client) readPump() {
@@ -95,6 +68,7 @@ func (c *Client) writePump() {
 			}
 			fmt.Printf("write: %s\n", message)
 			w.Write(message)
+			// execute rs creation
 			fmt.Printf("%s received msg: %s\n", c.addr, message)
 
 			// Add queued chat messages to the current websocket message.
@@ -128,11 +102,11 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// initialize clie
-	var ids Ids
+	var td TrainingData
 	client := &Client{
 		hub:     hub,
 		conn:    conn,
-		userIds: ids, // initialize is null
+		userIds: td, // initialize is null
 		send:    make(chan []byte),
 		addr:    conn.RemoteAddr().String(),
 	}
@@ -145,11 +119,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-	// first initialize
-	errJson := json.Unmarshal(message, &client.userIds)
-	if errJson != nil {
-		log.Fatalln("json err: ", errJson)
-	}
+	// first initialize: get uid and tid
+	jsonHandler(message, &client.userIds)
 
 	client.hub.register <- client
 
