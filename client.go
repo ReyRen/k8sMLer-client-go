@@ -59,6 +59,7 @@ func (c *Client) readPump() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
+			//flush websites and close website would caused ReadMessage err and trigger defer func
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
@@ -92,6 +93,7 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
+			fmt.Printf("write: %s\n", message)
 			w.Write(message)
 			fmt.Printf("%s received msg: %s\n", c.addr, message)
 
@@ -131,7 +133,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		hub:     hub,
 		conn:    conn,
 		userIds: ids, // initialize is null
-		send:    nil,
+		send:    make(chan []byte),
 		addr:    conn.RemoteAddr().String(),
 	}
 
@@ -152,6 +154,6 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	client.hub.register <- client
 
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
-	go client.readPump()
 	go client.writePump()
+	go client.readPump()
 }

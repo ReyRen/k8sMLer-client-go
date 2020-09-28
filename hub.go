@@ -76,7 +76,7 @@ func (list *SameIdsLinkList) PrintList() {
 		if current.next == nil {
 			break
 		}
-		fmt.Println("INode%d,value:%v --> ", i, current.client.addr)
+		fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
 		current = current.next
 	}
 	fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
@@ -85,16 +85,14 @@ func (list *SameIdsLinkList) PrintList() {
 
 type Hub struct {
 	// registered clies
-	clients map[Ids]*SameIdsLinkList
-	//broadcast chan []byte
+	clients    map[Ids]*SameIdsLinkList
 	register   chan *Client
 	unregister chan *Client
 }
 
 func newHub() *Hub {
 	return &Hub{
-		clients: make(map[Ids]*SameIdsLinkList),
-		//broadcast: make(chan []byte),
+		clients:    make(map[Ids]*SameIdsLinkList),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
