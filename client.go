@@ -12,7 +12,7 @@ import (
 type Client struct {
 	hub     *Hub
 	conn    *websocket.Conn
-	userIds TrainingData
+	userIds Ids
 	send    chan []byte
 	addr    string
 }
@@ -37,10 +37,11 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		fmt.Printf("messages: %s\n", message)
+		jsonHandler(message, c.hub.clients[c.userIds].Head.td)
 
 		currentList := c.hub.clients[c.userIds].Head.next
 		for currentList != nil {
-			currentList.client.send <- message
+			currentList.client.send <- []byte(c.hub.clients[c.userIds].Head.td.SelectedModelUrl)
 			currentList = currentList.next
 		}
 	}
@@ -101,12 +102,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		//log.Printf("upgrade err: %v\n", err)
 		return
 	}
-	// initialize clie
-	var td TrainingData
+	// initialize client
+	var ids Ids
 	client := &Client{
 		hub:     hub,
 		conn:    conn,
-		userIds: td, // initialize is null
+		userIds: ids, // initialize is null
 		send:    make(chan []byte),
 		addr:    conn.RemoteAddr().String(),
 	}
@@ -119,7 +120,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-	// first initialize: get uid and tid
+	// first initialize: get uid and tid only
 	jsonHandler(message, &client.userIds)
 
 	client.hub.register <- client

@@ -6,14 +6,14 @@ import (
 
 type Hub struct {
 	// registered clients
-	clients    map[TrainingData]*SameIdsLinkList
+	clients    map[Ids]*SameIdsLinkList
 	register   chan *Client
 	unregister chan *Client
 }
 
 func newHub() *Hub {
 	return &Hub{
-		clients:    make(map[TrainingData]*SameIdsLinkList),
+		clients:    make(map[Ids]*SameIdsLinkList),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
@@ -26,9 +26,6 @@ func (h *Hub) run() {
 			if h.clients[client.userIds] == nil {
 				// not exist [uid,tid] key
 				headList := NewSocketList()
-				/*
-					Here should initialize common training paramaters
-				*/
 				headList.Append(newNode(client, nil))
 				h.clients[client.userIds] = headList
 				fmt.Printf("userIds[%d, %d]: -- ", client.userIds.Uid, client.userIds.Tid)

@@ -10,8 +10,12 @@ type Node struct {
 	client *Client
 	next   *Node
 }
+type headNode struct {
+	td   *TrainingData
+	next *Node
+}
 type SameIdsLinkList struct {
-	Head *Node
+	Head *headNode
 }
 
 func newNode(client *Client, next *Node) *Node {
@@ -20,10 +24,12 @@ func newNode(client *Client, next *Node) *Node {
 		next:   next,
 	}
 }
+
 func NewSocketList() *SameIdsLinkList {
-	head := &Node{
-		client: nil,
-		next:   nil,
+	var td TrainingData
+	head := &headNode{
+		td:   &td,
+		next: nil,
 	}
 	return &SameIdsLinkList{head}
 }
@@ -35,29 +41,40 @@ func (list *SameIdsLinkList) isEmpty() bool {
 
 // append list
 func (list *SameIdsLinkList) Append(node *Node) {
-	current := list.Head
-	for {
-		if current.next == nil {
-			break
+	head := list.Head // *headNode
+	if head.next == nil {
+		head.next = node
+	} else {
+		current := head.next // *Node
+		for {
+			if current.next == nil {
+				break
+			}
+			current = current.next
 		}
-		current = current.next
+		current.next = node
 	}
-	current.next = node
 }
 
 // delete
 func (list *SameIdsLinkList) Remove(client *Client) error {
-	empty := list.isEmpty()
+	empty := list.isEmpty() // have node rather than only head
 	if empty {
 		return errors.New("This is an empty list")
 	}
-	current := list.Head
-	for current.next != nil {
-		if current.next.client == client {
-			current.next = current.next.next
-			return nil
+	head := list.Head // *headNode
+	if head.next.client == client {
+		head.next = head.next.next
+		return nil
+	} else {
+		current := head.next
+		for current.next != nil {
+			if current.next.client == client {
+				current.next = current.next.next
+				return nil
+			}
+			current = current.next
 		}
-		current = current.next
 	}
 	return nil
 }
