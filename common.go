@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	"k8s.io/client-go/kubernetes"
@@ -91,6 +92,8 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	nameSpace = "web" // define the default namespace RS located
 )
 
 var upgrader = websocket.Upgrader{
@@ -107,5 +110,14 @@ func jsonHandler(data []byte, v interface{}) {
 	errJson := json.Unmarshal(data, v)
 	if errJson != nil {
 		log.Fatalln("json err: ", errJson)
+	}
+}
+
+func getKubeconfigName(kubeconfig *string) {
+	if home := homedir.HomeDir(); home != "" { // HomeDir returns the home directory for the current user
+		*kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		*kubeconfig = ""
+		fmt.Println("The kubeconfig is null")
 	}
 }

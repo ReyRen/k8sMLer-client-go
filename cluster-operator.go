@@ -6,10 +6,21 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"log"
+	"strconv"
 )
 
-func test() {
-	var kubeconfig, operator, resource, namespaceName, kindName, labelName, caps string
+func resourceOperator(kubeconfig string,
+	operator string,
+	resource string,
+	namespaceName string,
+	kindName string,
+	labelName string,
+	caps string,
+	nodeQuantity int,
+	realPvcName *string) { // realPvcName used to get created random rs group name
+
+	//gpuQuantity int64) {
+	/*var kubeconfig, operator, resource, namespaceName, kindName, labelName, caps string
 	var gpuQuantity int64
 
 	ParseArg(&kubeconfig,
@@ -20,7 +31,9 @@ func test() {
 		&labelName,
 		&gpuQuantity,
 		&caps,
-	)
+	)*/
+
+	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
 	// create k8s-client
 	var clientset *kubernetes.Clientset
@@ -46,9 +59,11 @@ func test() {
 		fmt.Println("create operation...")
 		switch resource {
 		case "pod":
-			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
-			realPvcName := Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
-			Create_pod(podClient, kindName, tmpString, labelName, gpuQuantity, &gracePeriodSeconds, realPvcName)
+			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
+			for i := 0; i < nodeQuantity; i++ {
+				_ = Create_service(svcClient, kindName+strconv.Itoa(i), tmpString, labelName, &gracePeriodSeconds)
+				Create_pod(podClient, kindName+strconv.Itoa(i), tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName)
+			}
 		case "service":
 			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
 		case "pvc":
@@ -61,9 +76,11 @@ func test() {
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
-			endStr, startStr := PraseTmpString(kindName)
-			Delete_pod(podClient, kindName, labelName, &gracePeriodSeconds)
-			Delete_service(svcClient, startStr+"-svc-"+endStr, &gracePeriodSeconds)
+			endStr, startStr := PraseTmpString(*realPvcName)
+			for i := 0; i < nodeQuantity; i++ {
+				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr, labelName, &gracePeriodSeconds)
+				Delete_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, &gracePeriodSeconds)
+			}
 			Delete_pvc(pvcClient, startStr+"-pvc-"+endStr, labelName, &gracePeriodSeconds)
 		case "service":
 			Delete_service(svcClient, kindName, &gracePeriodSeconds)

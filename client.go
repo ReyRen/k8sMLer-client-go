@@ -17,6 +17,8 @@ type Client struct {
 	addr    string
 }
 
+var kubeconfigName string
+
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -36,12 +38,12 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		fmt.Printf("messages: %s\n", message)
+		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[c.userIds].Head.td)
 
 		currentList := c.hub.clients[c.userIds].Head.next
 		for currentList != nil {
-			currentList.client.send <- []byte(c.hub.clients[c.userIds].Head.td.SelectedModelUrl)
+			currentList.client.send <- []byte("start")
 			currentList = currentList.next
 		}
 	}
@@ -67,17 +69,41 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-			fmt.Printf("write: %s\n", message)
+			// send to client from server
+			//fmt.Printf("%s received msg: %s\n", c.addr, message)
+			fmt.Println(string(message))
 			w.Write(message)
-			// execute rs creation
-			fmt.Printf("%s received msg: %s\n", c.addr, message)
 
-			// Add queued chat messages to the current websocket message.
+			/*execute rs creation*/
+			//1. create namespace - default use "web" as the namespace
+			if c.hub.clients[c.userIds].Head.td.Command == "START" {
+				resourceOperator(kubeconfigName,
+					"create",
+					"pod",
+					nameSpace,
+					c.hub.clients[c.userIds].Head.td.ResourceType,
+					c.hub.clients[c.userIds].Head.td.ResourceType,
+					"10Gi",
+					2, // TODO
+					&c.hub.clients[c.userIds].Head.td.realPvcName)
+			} else if c.hub.clients[c.userIds].Head.td.Command == "STOP" {
+				resourceOperator(kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[c.userIds].Head.td.ResourceType,
+					c.hub.clients[c.userIds].Head.td.ResourceType,
+					"10Gi",
+					2, // TODO
+					&c.hub.clients[c.userIds].Head.td.realPvcName)
+			}
+
+			/*// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
 				w.Write(<-c.send)
-			}
+			}*/
 
 			if err := w.Close(); err != nil {
 				return

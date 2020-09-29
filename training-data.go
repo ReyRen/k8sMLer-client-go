@@ -9,9 +9,11 @@ type TrainingData struct {
 	Uid              int    `json:"uid"`
 	Tid              int    `json:"tid"`
 	SelectedModelUrl string `json:"selectedModelUrl"`
-	ResourceType     int    `json:"resourceType"`
+	ResourceType     string `json:"resourceType"`
 	SelectedNodes    int    `json:"selectedNodes"`
 	ModelType        int    `json:"modelType"`
+	Command          string `json:"command"`
+	realPvcName      string
 	//TaskParams []Params `json:"taskParams"`
 }
 
