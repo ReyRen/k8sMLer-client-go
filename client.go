@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
@@ -43,9 +44,35 @@ func (c *Client) readPump() {
 
 		currentList := c.hub.clients[c.userIds].Head.next
 		for currentList != nil {
-			currentList.client.send <- []byte("start")
+			currentList.client.send <- []byte("Connected")
 			currentList = currentList.next
 		}
+	}
+}
+
+func (c *Client) writePumpInit() {
+	// This shouldn't close conn
+	/*defer func() {
+		c.conn.Close()
+	}()*/
+	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	w, err := c.conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.Fatalln("c.conn.NextWriter: ", err)
+	}
+	capacity, used := get_gpu_rest()
+	fmt.Printf("capacity GPU : %s", string(capacity))
+	fmt.Printf("used GPU : %s", string(used))
+
+	m := map[string]string{
+		"gpuCapacity": string(capacity),
+		"gpuUsed":     string(used),
+	}
+	gpuSend, _ := json.Marshal(m)
+	w.Write(gpuSend)
+
+	if err := w.Close(); err != nil {
+		log.Fatalln("websocket closed: ", err)
 	}
 }
 
@@ -57,7 +84,7 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
+		case _, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -71,8 +98,6 @@ func (c *Client) writePump() {
 			}
 			// send to client from server
 			//fmt.Printf("%s received msg: %s\n", c.addr, message)
-			fmt.Println(string(message))
-			w.Write(message)
 
 			/*execute rs creation*/
 			//1. create namespace - default use "web" as the namespace
@@ -84,7 +109,7 @@ func (c *Client) writePump() {
 					c.hub.clients[c.userIds].Head.td.ResourceType,
 					c.hub.clients[c.userIds].Head.td.ResourceType,
 					"10Gi",
-					2, // TODO
+					c.hub.clients[c.userIds].Head.td.SelectedNodes,
 					&c.hub.clients[c.userIds].Head.td.realPvcName)
 			} else if c.hub.clients[c.userIds].Head.td.Command == "STOP" {
 				resourceOperator(kubeconfigName,
@@ -94,7 +119,7 @@ func (c *Client) writePump() {
 					c.hub.clients[c.userIds].Head.td.ResourceType,
 					c.hub.clients[c.userIds].Head.td.ResourceType,
 					"10Gi",
-					2, // TODO
+					c.hub.clients[c.userIds].Head.td.SelectedNodes,
 					&c.hub.clients[c.userIds].Head.td.realPvcName)
 			}
 
@@ -149,10 +174,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 	// first initialize: get uid and tid only
 	jsonHandler(message, &client.userIds)
+	client.writePumpInit()
 
 	client.hub.register <- client
 
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
+
 	go client.writePump()
 	go client.readPump()
 }

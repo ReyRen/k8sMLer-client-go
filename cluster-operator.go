@@ -63,11 +63,13 @@ func resourceOperator(kubeconfig string,
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, kindName+strconv.Itoa(i), tmpString, labelName, &gracePeriodSeconds)
 				Create_pod(podClient, kindName+strconv.Itoa(i), tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName)
-				Phase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+				/*Phase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 				for Phase != apiv1.PodRunning {
 					fmt.Printf("%s\n", Phase)
+					time.Sleep(time.Second * 3)
 					Phase = Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 				}
+				fmt.Printf("%s\n", Phase)*/
 			}
 		case "service":
 			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
