@@ -35,7 +35,7 @@ func resourceOperator(kubeconfig string,
 
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
-	// create k8s-client
+	// createk8s-client
 	var clientset *kubernetes.Clientset
 	err := CreateClient(&clientset, &kubeconfig)
 	if err != nil {
@@ -63,6 +63,11 @@ func resourceOperator(kubeconfig string,
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, kindName+strconv.Itoa(i), tmpString, labelName, &gracePeriodSeconds)
 				Create_pod(podClient, kindName+strconv.Itoa(i), tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName)
+				Phase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+				for Phase != apiv1.PodRunning {
+					fmt.Printf("%s\n", Phase)
+					Phase = Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+				}
 			}
 		case "service":
 			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)
@@ -78,6 +83,7 @@ func resourceOperator(kubeconfig string,
 		case "pod":
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
+				//Update_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr)
 				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr, labelName, &gracePeriodSeconds)
 				Delete_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, &gracePeriodSeconds)
 			}

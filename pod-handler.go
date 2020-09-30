@@ -48,8 +48,8 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 					Name:    containName,
 					Image:   "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
 					Command: []string{"/bin/sh", "-c"},
-					Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
-					//Args:       []string{"tail -f /dev/null"},
+					//Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
+					Args:       []string{"tail -f /dev/null"},
 					WorkingDir: "",
 					Ports:      []apiv1.ContainerPort{},
 					Env:        nil,
@@ -133,4 +133,20 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 		}
 		fmt.Printf("delete all pods under label: %s\n", labelName)
 	}
+}
+
+func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
+	var podv1 *apiv1.Pod
+
+	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
+	//a.GetAnnotations()
+	//podCondition := podv1.Status.Conditions
+	/*
+		podCondition[0].Status:False
+		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.
+		podCondition[0].Reason:Unschedulable
+		podCondition[0].podPhase:Pending
+	*/
+	//return podCondition[0].Status, podCondition[0].Message, podCondition[0].Reason, podv1.Status.Phase
+	return podv1.Status.Phase
 }

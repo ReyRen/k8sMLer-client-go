@@ -106,6 +106,7 @@ func (c *Client) writePump() {
 			}*/
 
 			if err := w.Close(); err != nil {
+				log.Fatalln("websocket closed: ", err)
 				return
 			}
 		case <-ticker.C:
