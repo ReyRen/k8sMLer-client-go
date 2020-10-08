@@ -11,7 +11,8 @@ type Node struct {
 	next   *Node
 }
 type headNode struct {
-	td   *TrainingData
+	sm   *sendMsg
+	rm   *recvMsg
 	next *Node
 }
 type SameIdsLinkList struct {
@@ -26,9 +27,19 @@ func newNode(client *Client, next *Node) *Node {
 }
 
 func NewSocketList() *SameIdsLinkList {
-	var td TrainingData
+	var rm recvMsg
+	var rmc recvMsgContent
+	rm.Content = rmc
+
+	var sm sendMsg
+	var smc sendMsgContent
+	var cmcg sendMsgContentGpu
+	sm.Content = smc
+	sm.Content.GpuInfo = cmcg
+
 	head := &headNode{
-		td:   &td,
+		sm:   &sm,
+		rm:   &rm,
 		next: nil,
 	}
 	return &SameIdsLinkList{head}

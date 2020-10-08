@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -40,21 +41,21 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
-		jsonHandler(message, c.hub.clients[c.userIds].Head.td)
+		jsonHandler(message, c.hub.clients[c.userIds].Head.rm)
 
 		currentList := c.hub.clients[c.userIds].Head.next
 		for currentList != nil {
-			currentList.client.send <- []byte("Connected")
+			currentList.client.send <- []byte(strconv.Itoa(c.hub.clients[c.userIds].Head.rm.Type))
 			currentList = currentList.next
 		}
 	}
 }
 
-func (c *Client) writePumpInit() {
+/*func (c *Client) writePumpInit() {
 	// This shouldn't close conn
 	/*defer func() {
 		c.conn.Close()
-	}()*/
+	}()
 	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	w, err := c.conn.NextWriter(websocket.TextMessage)
 	if err != nil {
@@ -74,7 +75,7 @@ func (c *Client) writePumpInit() {
 	if err := w.Close(); err != nil {
 		log.Fatalln("websocket closed: ", err)
 	}
-}
+}*/
 
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
@@ -84,44 +85,51 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case _, ok := <-c.send:
+		case msg, ok := <-c.send:
+			typeCode, _ := strconv.Atoi(string(msg))
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
+
+			if typeCode == 1 {
+				// initialize information
+				gpuSend, _ := json.Marshal(c.hub.clients[c.userIds].Head.sm)
+				w.Write(gpuSend)
+
+			} else if typeCode == 2 {
+				// start training and stop training msg
+				//1. create namespace - default use "web" as the namespace
+				if c.hub.clients[c.userIds].Head.rm.Content.Command == "START" {
+					resourceOperator(kubeconfigName,
+						"create",
+						"pod",
+						nameSpace,
+						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[c.userIds].Head.rm.realPvcName)
+				} else if c.hub.clients[c.userIds].Head.rm.Content.Command == "STOP" {
+					resourceOperator(kubeconfigName,
+						"delete",
+						"pod",
+						nameSpace,
+						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[c.userIds].Head.rm.realPvcName)
+				}
+			}
 			// send to client from server
 			//fmt.Printf("%s received msg: %s\n", c.addr, message)
-
-			/*execute rs creation*/
-			//1. create namespace - default use "web" as the namespace
-			if c.hub.clients[c.userIds].Head.td.Command == "START" {
-				resourceOperator(kubeconfigName,
-					"create",
-					"pod",
-					nameSpace,
-					c.hub.clients[c.userIds].Head.td.ResourceType,
-					c.hub.clients[c.userIds].Head.td.ResourceType,
-					"10Gi",
-					c.hub.clients[c.userIds].Head.td.SelectedNodes,
-					&c.hub.clients[c.userIds].Head.td.realPvcName)
-			} else if c.hub.clients[c.userIds].Head.td.Command == "STOP" {
-				resourceOperator(kubeconfigName,
-					"delete",
-					"pod",
-					nameSpace,
-					c.hub.clients[c.userIds].Head.td.ResourceType,
-					c.hub.clients[c.userIds].Head.td.ResourceType,
-					"10Gi",
-					c.hub.clients[c.userIds].Head.td.SelectedNodes,
-					&c.hub.clients[c.userIds].Head.td.realPvcName)
-			}
 
 			/*// Add queued chat messages to the current websocket message.
 			n := len(c.send)
@@ -173,10 +181,18 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 	// first initialize: get uid and tid only
-	jsonHandler(message, &client.userIds)
-	client.writePumpInit()
+	//jsonHandler(message, &client.userIds)
+	var rmtmp recvMsg
+	var recvMsgContenttmp recvMsgContent
+	rmtmp.Content = recvMsgContenttmp
+	fmt.Println(string(message))
+	jsonHandler(message, &rmtmp)
+	client.userIds.Uid = rmtmp.Content.Uid
+	client.userIds.Tid = rmtmp.Content.Tid
+	//jsonHandler(message, &client.userIds)
 
 	client.hub.register <- client
+	set_gpu_rest(client)
 
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 
