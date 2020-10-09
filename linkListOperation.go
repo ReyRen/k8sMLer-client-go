@@ -11,9 +11,10 @@ type Node struct {
 	next   *Node
 }
 type headNode struct {
-	sm   *sendMsg
-	rm   *recvMsg
-	next *Node
+	sm        *sendMsg
+	rm        *recvMsg
+	broadcast chan *sendMsg
+	next      *Node
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -26,21 +27,12 @@ func newNode(client *Client, next *Node) *Node {
 	}
 }
 
-func NewSocketList() *SameIdsLinkList {
-	var rm recvMsg
-	var rmc recvMsgContent
-	rm.Content = rmc
-
-	var sm sendMsg
-	var smc sendMsgContent
-	var cmcg sendMsgContentGpu
-	sm.Content = smc
-	sm.Content.GpuInfo = cmcg
-
+func NewSocketList(msg *msg) *SameIdsLinkList {
 	head := &headNode{
-		sm:   &sm,
-		rm:   &rm,
-		next: nil,
+		sm:        msg.sm,
+		rm:        msg.rm,
+		broadcast: make(chan *sendMsg),
+		next:      nil,
 	}
 	return &SameIdsLinkList{head}
 }

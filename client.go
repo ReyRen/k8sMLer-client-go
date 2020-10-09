@@ -14,7 +14,7 @@ import (
 type Client struct {
 	hub     *Hub
 	conn    *websocket.Conn
-	userIds Ids
+	userIds *Ids
 	send    chan []byte
 	addr    string
 }
@@ -41,11 +41,11 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
-		jsonHandler(message, c.hub.clients[c.userIds].Head.rm)
+		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
 
-		currentList := c.hub.clients[c.userIds].Head.next
+		currentList := c.hub.clients[*c.userIds].Head.next
 		for currentList != nil {
-			currentList.client.send <- []byte(strconv.Itoa(c.hub.clients[c.userIds].Head.rm.Type))
+			currentList.client.send <- []byte(strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
 			currentList = currentList.next
 		}
 	}
@@ -100,32 +100,32 @@ func (c *Client) writePump() {
 
 			if typeCode == 1 {
 				// initialize information
-				gpuSend, _ := json.Marshal(c.hub.clients[c.userIds].Head.sm)
+				gpuSend, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(gpuSend)
 
 			} else if typeCode == 2 {
 				// start training and stop training msg
 				//1. create namespace - default use "web" as the namespace
-				if c.hub.clients[c.userIds].Head.rm.Content.Command == "START" {
+				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					resourceOperator(kubeconfigName,
 						"create",
 						"pod",
 						nameSpace,
-						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
-						c.hub.clients[c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[c.userIds].Head.rm.realPvcName)
-				} else if c.hub.clients[c.userIds].Head.rm.Content.Command == "STOP" {
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 					resourceOperator(kubeconfigName,
 						"delete",
 						"pod",
 						nameSpace,
-						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
-						c.hub.clients[c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[c.userIds].Head.rm.realPvcName)
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				}
 			}
 			// send to client from server
@@ -162,17 +162,33 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		//log.Printf("upgrade err: %v\n", err)
 		return
 	}
-	// initialize client
+	// initialize client, create memory for msg
 	var ids Ids
+	var msg msg
+	var rmtmp recvMsg
+	var smtmp sendMsg
+	var recvMsgContenttmp recvMsgContent
+	var sendMsgConetenttmp sendMsgContent
+	var sendMsgContentGputmp sendMsgContentGpu
+
+	recvMsgContenttmp.IDs = &ids
+	rmtmp.Content = &recvMsgContenttmp
+	smtmp.Content = &sendMsgConetenttmp
+	smtmp.Content.GpuInfo = &sendMsgContentGputmp
+	msg.rm = &rmtmp
+	msg.sm = &smtmp
+
 	client := &Client{
 		hub:     hub,
 		conn:    conn,
-		userIds: ids, // initialize is null
+		userIds: rmtmp.Content.IDs, // initialize is null
 		send:    make(chan []byte),
 		addr:    conn.RemoteAddr().String(),
 	}
+	// assemble client to once msg
+	msg.cltmp = client
 
-	//read first connected
+	//read first connection
 	_, message, err := client.conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -180,22 +196,21 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-	// first initialize: get uid and tid only
-	//jsonHandler(message, &client.userIds)
-	var rmtmp recvMsg
-	var recvMsgContenttmp recvMsgContent
-	rmtmp.Content = recvMsgContenttmp
+
 	fmt.Println(string(message))
+
 	jsonHandler(message, &rmtmp)
-	client.userIds.Uid = rmtmp.Content.Uid
-	client.userIds.Tid = rmtmp.Content.Tid
-	//jsonHandler(message, &client.userIds)
 
-	client.hub.register <- client
-	set_gpu_rest(client)
+	client.hub.register <- &msg
 
+	go msg.cltmp.handle_broadcast()
+
+	set_gpu_rest(msg.cltmp)
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
-
-	go client.writePump()
-	go client.readPump()
+	client.hub.clients[*client.userIds].Head.broadcast <- client.hub.clients[*client.userIds].Head.sm
+	//NOTE: log
+	/*client.userIds.Uid = msg.rm.Content.IDs.Uid
+	client.userIds.Tid = msg.rm.Content.IDs.Tid*/
+	go msg.cltmp.writePump()
+	go msg.cltmp.readPump()
 }
