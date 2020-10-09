@@ -1,17 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"log"
-	"time"
+	"strconv"
 )
 
 type Hub struct {
 	// registered clients
 	clients    map[Ids]*SameIdsLinkList
 	register   chan *msg
+	broadcast  chan *Client
 	unregister chan *Client
 }
 
@@ -19,6 +17,7 @@ func newHub() *Hub {
 	return &Hub{
 		clients:    make(map[Ids]*SameIdsLinkList),
 		register:   make(chan *msg),
+		broadcast:  make(chan *Client),
 		unregister: make(chan *Client),
 	}
 }
@@ -40,41 +39,17 @@ func (h *Hub) run() {
 				fmt.Printf("userIds[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
 			}
+		case broadcastClient := <-h.broadcast:
+			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
+			for currentList != nil {
+				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
+				currentList = currentList.next
+			}
 		case client := <-h.unregister:
 			h.clients[*client.userIds].Remove(client)
 			fmt.Printf("%s is logged out from userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 			if client.send != nil {
 				close(client.send)
-			}
-		}
-	}
-}
-
-func (c *Client) handle_broadcast() {
-	for true {
-		select {
-		case sm, ok := <-c.hub.clients[*c.userIds].Head.broadcast:
-			//typeCode, _ := strconv.Atoi(string(msg))
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-
-			gpuSend, err := json.Marshal(sm)
-			if err != nil {
-				log.Fatalln("json.Marshal err ", err)
-			}
-			w.Write(gpuSend)
-
-			if err := w.Close(); err != nil {
-				log.Fatalln("websocket closed: ", err)
-				return
 			}
 		}
 	}

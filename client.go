@@ -43,39 +43,13 @@ func (c *Client) readPump() {
 		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
 
-		currentList := c.hub.clients[*c.userIds].Head.next
-		for currentList != nil {
+		//urrentList := c.hub.clients[*c.userIds].Head.next
+		/*for currentList != nil {
 			currentList.client.send <- []byte(strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
 			currentList = currentList.next
-		}
+		}*/
 	}
 }
-
-/*func (c *Client) writePumpInit() {
-	// This shouldn't close conn
-	/*defer func() {
-		c.conn.Close()
-	}()
-	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	w, err := c.conn.NextWriter(websocket.TextMessage)
-	if err != nil {
-		log.Fatalln("c.conn.NextWriter: ", err)
-	}
-	capacity, used := get_gpu_rest()
-	fmt.Printf("capacity GPU : %s", string(capacity))
-	fmt.Printf("used GPU : %s", string(used))
-
-	m := map[string]string{
-		"gpuCapacity": string(capacity),
-		"gpuUsed":     string(used),
-	}
-	gpuSend, _ := json.Marshal(m)
-	w.Write(gpuSend)
-
-	if err := w.Close(); err != nil {
-		log.Fatalln("websocket closed: ", err)
-	}
-}*/
 
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
@@ -164,7 +138,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	// initialize client, create memory for msg
 	var ids Ids
-	var msg msg
+	var msgs msg
 	var rmtmp recvMsg
 	var smtmp sendMsg
 	var recvMsgContenttmp recvMsgContent
@@ -175,8 +149,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	rmtmp.Content = &recvMsgContenttmp
 	smtmp.Content = &sendMsgConetenttmp
 	smtmp.Content.GpuInfo = &sendMsgContentGputmp
-	msg.rm = &rmtmp
-	msg.sm = &smtmp
+	msgs.rm = &rmtmp
+	msgs.sm = &smtmp
 
 	client := &Client{
 		hub:     hub,
@@ -186,7 +160,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		addr:    conn.RemoteAddr().String(),
 	}
 	// assemble client to once msg
-	msg.cltmp = client
+	msgs.cltmp = client
 
 	//read first connection
 	_, message, err := client.conn.ReadMessage()
@@ -201,16 +175,16 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	jsonHandler(message, &rmtmp)
 
-	client.hub.register <- &msg
+	client.hub.register <- &msgs
 
-	go msg.cltmp.handle_broadcast()
+	//go msgs.cltmp.handle_broadcast()
 
-	set_gpu_rest(msg.cltmp)
+	set_gpu_rest(msgs.cltmp)
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
-	client.hub.clients[*client.userIds].Head.broadcast <- client.hub.clients[*client.userIds].Head.sm
+	client.hub.broadcast <- msgs.cltmp
 	//NOTE: log
 	/*client.userIds.Uid = msg.rm.Content.IDs.Uid
 	client.userIds.Tid = msg.rm.Content.IDs.Tid*/
-	go msg.cltmp.writePump()
-	go msg.cltmp.readPump()
+	go msgs.cltmp.writePump()
+	go msgs.cltmp.readPump()
 }

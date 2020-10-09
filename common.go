@@ -133,7 +133,7 @@ func set_gpu_rest(c *Client) {
 	used, _ = usedResult.Output()
 
 	// assemble send data
-	c.hub.clients[*c.userIds].Head.sm.Type = 0
+	c.hub.clients[*c.userIds].Head.sm.Type = 1
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuCapacity = string(capacity)
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuUsed = string(used)
 

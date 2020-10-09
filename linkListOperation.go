@@ -11,10 +11,10 @@ type Node struct {
 	next   *Node
 }
 type headNode struct {
-	sm        *sendMsg
-	rm        *recvMsg
-	broadcast chan *sendMsg
-	next      *Node
+	sm *sendMsg
+	rm *recvMsg
+	//broadcast chan *sendMsg
+	next *Node
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -29,10 +29,10 @@ func newNode(client *Client, next *Node) *Node {
 
 func NewSocketList(msg *msg) *SameIdsLinkList {
 	head := &headNode{
-		sm:        msg.sm,
-		rm:        msg.rm,
-		broadcast: make(chan *sendMsg),
-		next:      nil,
+		sm: msg.sm,
+		rm: msg.rm,
+		//broadcast: make(chan *sendMsg),
+		next: nil,
 	}
 	return &SameIdsLinkList{head}
 }
