@@ -135,18 +135,18 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 	}
 }
 
-func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
+func Get_pod_status(podClient v1.PodInterface, podName string) (apiv1.ConditionStatus, string, string, apiv1.PodPhase) {
 	var podv1 *apiv1.Pod
 
 	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
 	//a.GetAnnotations()
-	//podCondition := podv1.Status.Conditions
+	podCondition := podv1.Status.Conditions
 	/*
 		podCondition[0].Status:False
 		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.
 		podCondition[0].Reason:Unschedulable
 		podCondition[0].podPhase:Pending
 	*/
-	//return podCondition[0].Status, podCondition[0].Message, podCondition[0].Reason, podv1.Status.Phase
-	return podv1.Status.Phase
+	return podCondition[0].Status, podCondition[0].Message, podCondition[0].Reason, podv1.Status.Phase
+
 }

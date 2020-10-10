@@ -7,9 +7,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"log"
 	"strconv"
+	"time"
 )
 
-func resourceOperator(kubeconfig string,
+func resourceOperator(c *Client,
+	kubeconfig string,
 	operator string,
 	resource string,
 	namespaceName string,
@@ -63,13 +65,53 @@ func resourceOperator(kubeconfig string,
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, kindName+strconv.Itoa(i), tmpString, labelName, &gracePeriodSeconds)
 				Create_pod(podClient, kindName+strconv.Itoa(i), tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName)
-				/*Phase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
-				for Phase != apiv1.PodRunning {
-					fmt.Printf("%s\n", Phase)
-					time.Sleep(time.Second * 3)
-					Phase = Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+
+				for true {
+					status, messages, reasons, podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+					if podPhase == apiv1.PodRunning {
+						// assemble sm
+						c.hub.clients[*c.userIds].Head.sm.Type = 2
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.broadcast <- c
+						break
+					} else if podPhase == apiv1.PodPending {
+						c.hub.clients[*c.userIds].Head.sm.Type = 2
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.broadcast <- c
+						time.Sleep(time.Second * 3)
+					} else if podPhase == apiv1.PodFailed {
+						c.hub.clients[*c.userIds].Head.sm.Type = 2
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.broadcast <- c
+						break
+					} else if podPhase == apiv1.PodSucceeded {
+						c.hub.clients[*c.userIds].Head.sm.Type = 2
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.broadcast <- c
+						break
+					} else if podPhase == apiv1.PodUnknown {
+						c.hub.clients[*c.userIds].Head.sm.Type = 2
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
+						c.hub.broadcast <- c
+						break
+					}
 				}
-				fmt.Printf("%s\n", Phase)*/
 			}
 		case "service":
 			_ = Create_service(svcClient, kindName, tmpString, labelName, &gracePeriodSeconds)

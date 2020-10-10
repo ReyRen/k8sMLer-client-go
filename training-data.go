@@ -13,9 +13,7 @@ type recvMsg struct {
 	realPvcName string
 }
 type recvMsgContent struct {
-	IDs *Ids `json:"ids"`
-	/*Uid              int    `json:"uid"`
-	Tid              int    `json:"tid"`*/
+	IDs              *Ids   `json:"ids"`
 	SelectedModelUrl string `json:"selectedModelUrl"`
 	ResourceType     string `json:"resourceType"`
 	SelectedNodes    int    `json:"selectedNodes"`
@@ -32,11 +30,18 @@ type sendMsg struct {
 	Content *sendMsgContent `json:"content"`
 }
 type sendMsgContent struct {
-	Log        string             `json:"log"`
-	StatusCode int                `json:"statusCode"`
-	GpuInfo    *sendMsgContentGpu `json:"gpuInfo"`
+	Log          string             `json:"log"`
+	StatusCode   int                `json:"statusCode"`
+	GpuInfo      *sendMsgContentGpu `json:"gpuInfo"`
+	ResourceInfo *resourceInfo      `json:"resourceInfo"`
 }
 type sendMsgContentGpu struct {
 	GpuCapacity string `json:"gpuCapacity"`
 	GpuUsed     string `json:"gpuUsed"`
+}
+type resourceInfo struct {
+	Status   string `json:"status`
+	Message  string `json:"message"`
+	Reason   string `json:"reason"`
+	PodPhase string `json:"podPhase"`
 }

@@ -43,11 +43,33 @@ func (c *Client) readPump() {
 		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
 
-		//urrentList := c.hub.clients[*c.userIds].Head.next
-		/*for currentList != nil {
-			currentList.client.send <- []byte(strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
-			currentList = currentList.next
-		}*/
+		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
+			// start/stop training
+			//1. create namespace - default use "web" as the namespace
+			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+				resourceOperator(c,
+					kubeconfigName,
+					"create",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			}
+		}
 	}
 }
 
@@ -73,34 +95,22 @@ func (c *Client) writePump() {
 			}
 
 			if typeCode == 1 {
-				// initialize information
-				gpuSend, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(gpuSend)
-
+				// Status code
+				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)
+				//gpuSend, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				//w.Write(gpuSend)
 			} else if typeCode == 2 {
-				// start training and stop training msg
-				//1. create namespace - default use "web" as the namespace
-				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
-					resourceOperator(kubeconfigName,
-						"create",
-						"pod",
-						nameSpace,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						"10Gi",
-						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
-					resourceOperator(kubeconfigName,
-						"delete",
-						"pod",
-						nameSpace,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						"10Gi",
-						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				}
+				// resource msg
+				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)
+			} else if typeCode == 3 {
+				// log msg
+				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)
+			} else {
+				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)
 			}
 			// send to client from server
 			//fmt.Printf("%s received msg: %s\n", c.addr, message)
@@ -144,11 +154,13 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	var recvMsgContenttmp recvMsgContent
 	var sendMsgConetenttmp sendMsgContent
 	var sendMsgContentGputmp sendMsgContentGpu
+	var resourceInfotmp resourceInfo
 
 	recvMsgContenttmp.IDs = &ids
 	rmtmp.Content = &recvMsgContenttmp
 	smtmp.Content = &sendMsgConetenttmp
 	smtmp.Content.GpuInfo = &sendMsgContentGputmp
+	smtmp.Content.ResourceInfo = &resourceInfotmp
 	msgs.rm = &rmtmp
 	msgs.sm = &smtmp
 
@@ -176,8 +188,6 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	jsonHandler(message, &rmtmp)
 
 	client.hub.register <- &msgs
-
-	//go msgs.cltmp.handle_broadcast()
 
 	set_gpu_rest(msgs.cltmp)
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
