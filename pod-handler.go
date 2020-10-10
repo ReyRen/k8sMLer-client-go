@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"log"
-	"time"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string) {
@@ -142,9 +141,6 @@ func Get_pod_status(podClient v1.PodInterface, podName string) (apiv1.ConditionS
 	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
 	//a.GetAnnotations()
 	podCondition := podv1.Status.Conditions
-	for len(podCondition) == 0 {
-		time.Sleep(time.Second * 3)
-	}
 	/*
 		podCondition[0].Status:False
 		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.

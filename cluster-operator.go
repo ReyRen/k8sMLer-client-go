@@ -65,7 +65,7 @@ func resourceOperator(c *Client,
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, kindName+strconv.Itoa(i), tmpString, labelName, &gracePeriodSeconds)
 				Create_pod(podClient, kindName+strconv.Itoa(i), tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName)
-
+				time.Sleep(time.Second * 3)
 				for true {
 					status, messages, reasons, podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {

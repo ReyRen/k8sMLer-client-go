@@ -112,8 +112,6 @@ func (c *Client) writePump() {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			}
-			// send to client from server
-			//fmt.Printf("%s received msg: %s\n", c.addr, message)
 
 			/*// Add queued chat messages to the current websocket message.
 			n := len(c.send)
