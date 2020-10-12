@@ -10,9 +10,9 @@ import (
 	"log"
 )
 
-func ServiceReady(service *apiv1.Service, serviceName string, tmpString string, labelName string, gracePeriodSeconds *int64) string {
+func ServiceReady(service *apiv1.Service, serviceName string, labelName string, gracePeriodSeconds *int64) string {
 	// assemble a pod name
-	serviceName = serviceName + "-svc-" + tmpString
+	//serviceName = serviceName + "-svc-" + tmpString
 
 	*service = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,10 +43,10 @@ func ServiceReady(service *apiv1.Service, serviceName string, tmpString string, 
 	return serviceName
 }
 
-func Create_service(svcClient v1.ServiceInterface, serviceName string, tmpString string, labelName string, gracePeriodSeconds *int64) string {
+func Create_service(svcClient v1.ServiceInterface, serviceName string, labelName string, gracePeriodSeconds *int64) string {
 	var service apiv1.Service
 
-	realSvcName := ServiceReady(&service, serviceName, tmpString, labelName, gracePeriodSeconds)
+	realSvcName := ServiceReady(&service, serviceName, labelName, gracePeriodSeconds)
 	fmt.Println("creating service...")
 	result, err := svcClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {

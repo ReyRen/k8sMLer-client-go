@@ -10,15 +10,27 @@ import (
 	"log"
 )
 
-func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string) {
+func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
 	// assemble a pod name
-	podName = podName + "-pod-" + tmpString
+	//podName = podName + "-pod-" + tmpString
 
 	// volumeMount
 	mountPath := "/usr/share/horovod"
 	mountName := podName + "-mount-" + tmpString
+
+	// get the execute args
+	var args []string
+	base_tail := "wget -P /usr/share/horovod http://172.18.29.81/ftp/model/test_auto.py;tail -f /dev/null"
+	if currentI == totalI-1 {
+		// last one pod
+		//args = []string{"wget -P /usr/share/horovod http://172.18.29.81/ftp/model/test_auto.py;sleep 5;python /usr/share/horovod/test_auto.py"}
+		args = []string{"python /usr/share/horovod/test_auto.py"}
+		//args = []string{"python tensorflow_mnist.py"}
+	} else {
+		args = []string{base_tail}
+	}
 
 	// assemble a resource limit
 	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)
@@ -49,7 +61,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 					Image:   "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
 					Command: []string{"/bin/sh", "-c"},
 					//Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
-					Args:       []string{"tail -f /dev/null"},
+					Args:       args,
 					WorkingDir: "",
 					Ports:      []apiv1.ContainerPort{},
 					Env:        nil,
@@ -84,10 +96,10 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 	}
 }
 
-func Create_pod(podClient v1.PodInterface, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string) {
+func Create_pod(podClient v1.PodInterface, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
 	var pod apiv1.Pod
 
-	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName)
+	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI)
 	fmt.Println("creating pod...")
 	result, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
@@ -135,18 +147,18 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 	}
 }
 
-func Get_pod_status(podClient v1.PodInterface, podName string) (apiv1.ConditionStatus, string, string, apiv1.PodPhase) {
+func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
 	var podv1 *apiv1.Pod
 
 	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
 	//a.GetAnnotations()
-	podCondition := podv1.Status.Conditions
+	//podCondition := podv1.Status.Conditions
 	/*
 		podCondition[0].Status:False
 		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.
 		podCondition[0].Reason:Unschedulable
 		podCondition[0].podPhase:Pending
 	*/
-	return podCondition[0].Status, podCondition[0].Message, podCondition[0].Reason, podv1.Status.Phase
+	return podv1.Status.Phase
 
 }

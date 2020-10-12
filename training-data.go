@@ -40,8 +40,8 @@ type sendMsgContentGpu struct {
 	GpuUsed     string `json:"gpuUsed"`
 }
 type resourceInfo struct {
-	Status   string `json:"status`
+	/*Status   string `json:"status`
 	Message  string `json:"message"`
-	Reason   string `json:"reason"`
+	Reason   string `json:"reason"`*/
 	PodPhase string `json:"podPhase"`
 }

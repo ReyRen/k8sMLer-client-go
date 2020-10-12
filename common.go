@@ -2,19 +2,21 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"math/rand"
-	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -63,8 +65,9 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(rd io.Reader) {
+func LogMonitor(c *Client, rd io.Reader) {
 	r := bufio.NewReader(rd)
+
 	for {
 		line, err := r.ReadBytes('\n')
 		if err == io.EOF {
@@ -74,8 +77,12 @@ func LogMonitor(rd io.Reader) {
 			log.Fatalln("read err: ", err)
 		}
 		go func() {
-			os.Stdout.Write(line)
+			//fmt.Println(string(line))
+			//os.Stdout.Write(line)
+			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+			c.hub.broadcast <- c
 		}()
+		//fmt.Print(c.hub.clients[*c.userIds].Head.sm.Content.Log)
 	}
 }
 
@@ -136,5 +143,34 @@ func set_gpu_rest(c *Client) {
 	// dont set the type
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuCapacity = string(capacity)
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuUsed = string(used)
+}
 
+func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, nodeQuantity int, realPvcName *string) {
+
+	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
+
+	// createk8s-client
+	var clientset *kubernetes.Clientset
+	err := CreateClient(&clientset, &kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	// define resource
+	podClient := clientset.CoreV1().Pods(namespaceName)
+
+	endStr, startStr := PraseTmpString(*realPvcName)
+	//fmt.Println("get pods log...")
+	result := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+		Container:  "",
+		Follow:     true,
+		Previous:   false,
+		Timestamps: true, // timestamps
+	})
+	podLogs, err := result.Stream(context.TODO())
+	if err != nil {
+		log.Fatalln("podLogs stream err : ", err)
+	}
+	//return podLogs
+	defer podLogs.Close()
+	LogMonitor(c, podLogs)
 }

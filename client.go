@@ -1,10 +1,12 @@
 package main
 
 import (
+	//	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	//"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,6 +33,12 @@ func (c *Client) readPump() {
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
+
+		if c.hub.clients[*c.userIds].Head.readyflag == 11 {
+			c.hub.clients[*c.userIds].Head.sm.Type = 3
+			go log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+		}
+
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -45,8 +53,11 @@ func (c *Client) readPump() {
 
 		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
 			// start/stop training
+
 			//1. create namespace - default use "web" as the namespace
 			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
 				resourceOperator(c,
 					kubeconfigName,
 					"create",
@@ -57,7 +68,20 @@ func (c *Client) readPump() {
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				/*resourceOperator(c,
+				kubeconfigName,
+				"log",
+				"pod",
+				nameSpace,
+				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+				"10Gi",
+				c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+				&c.hub.clients[*c.userIds].Head.rm.realPvcName)*/
 			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				c.hub.clients[*c.userIds].Head.readyflag = 10
 				resourceOperator(c,
 					kubeconfigName,
 					"delete",
@@ -105,9 +129,52 @@ func (c *Client) writePump() {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			} else if typeCode == 3 {
-				// log msg
+
+				/*resourceOperator(c,
+				kubeconfigName,
+				"log",
+				"pod",
+				nameSpace,
+				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+				"10Gi",
+				c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+				&c.hub.clients[*c.userIds].Head.rm.realPvcName)*/
+
+				//fmt.Println("entry the log msg")
+				//log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				//fmt.Println("end the log msg")
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
+				/*for i := 0; i < 100; i++ {
+					w.Write(sdmsg)
+					//time.Sleep(time.Second * 3)
+				}*/
+				// log msg
+				//podLogs := log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				//defer podLogs.Close()
+
+				//r := bufio.NewReader(podLogs)
+				//for {
+				/*line, err := r.ReadBytes('\n')
+				if err == io.EOF {
+					//time.Sleep(500 * time.Millisecond)
+					break
+				} else if err != nil {
+					log.Fatalln("read err: ", err)
+				}
+				//go func() {
+				c.hub.clients[*c.userIds].Head.sm.Content.Log = line
+				//sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				fmt.Println("entry the log msg")
+				//w.Write(sdmsg)*/
+				//w.Write(sdmsg)
+				//time.Sleep(time.Second * 2)
+				//os.Stdout.Write(line)
+				//}()
+				//}
+				/*sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)*/
 			} else {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
@@ -121,7 +188,8 @@ func (c *Client) writePump() {
 			}*/
 
 			if err := w.Close(); err != nil {
-				log.Fatalln("websocket closed: ", err)
+				log.Println("websocket closed:", err)
+				//log.Fatalln("websocket closed: ", err)
 				return
 			}
 		case <-ticker.C:
@@ -189,7 +257,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	set_gpu_rest(msgs.cltmp)
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
-	client.hub.broadcast <- msgs.cltmp
+	//client.hub.broadcast <- msgs.cltmp
 	//NOTE: log
 	/*client.userIds.Uid = msg.rm.Content.IDs.Uid
 	client.userIds.Tid = msg.rm.Content.IDs.Tid*/
