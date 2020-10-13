@@ -14,8 +14,9 @@ type headNode struct {
 	sm *sendMsg
 	rm *recvMsg
 	//broadcast chan *sendMsg
-	readyflag int
-	next      *Node
+	readyflag   int
+	executeflag int
+	next        *Node
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -33,8 +34,9 @@ func NewSocketList(msg *msg) *SameIdsLinkList {
 		sm: msg.sm,
 		rm: msg.rm,
 		//broadcast: make(chan *sendMsg),
-		readyflag: 10,
-		next:      nil,
+		readyflag:   10,
+		executeflag: 20,
+		next:        nil,
 	}
 	return &SameIdsLinkList{head}
 }
@@ -73,7 +75,7 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		if client.send != nil {
 			close(client.send)
 		}
-		client.hub = nil
+		client.addr = ""
 		return nil
 	} else {
 		current := head.next
@@ -83,7 +85,7 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 				if client.send != nil {
 					close(client.send)
 				}
-				client.hub = nil
+				client.addr = ""
 				return nil
 			}
 			current = current.next

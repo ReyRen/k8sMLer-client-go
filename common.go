@@ -79,12 +79,11 @@ func LogMonitor(c *Client, rd io.Reader) {
 		go func() {
 			//fmt.Println(string(line))
 			//os.Stdout.Write(line)
-			if c.hub != nil {
+			if c.addr != "" {
 				c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 				c.hub.broadcast <- c
 			}
 		}()
-		//fmt.Print(c.hub.clients[*c.userIds].Head.sm.Content.Log)
 	}
 }
 
@@ -174,7 +173,54 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 	}
 	//return podLogs
 	defer podLogs.Close()
-	if c.hub != nil {
+	if c.addr != "" {
 		LogMonitor(c, podLogs)
+	}
+}
+
+func (c *Client) logDisplay() {
+	for true {
+		if c.hub.clients[*c.userIds].Head.readyflag == 11 {
+			c.hub.clients[*c.userIds].Head.sm.Type = 3
+			if c.addr != "" {
+				log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			}
+		}
+	}
+}
+
+func (c *Client) execute() {
+	for true {
+		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
+			//1. create namespace - default use "web" as the namespace
+			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" && c.hub.clients[*c.userIds].Head.executeflag != 21 {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				resourceOperator(c,
+					kubeconfigName,
+					"create",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" && c.hub.clients[*c.userIds].Head.executeflag != 22 {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				c.hub.clients[*c.userIds].Head.readyflag = 10
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			}
+		}
 	}
 }

@@ -31,16 +31,8 @@ func (c *Client) readPump() {
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
 	for {
-		if c.hub.clients[*c.userIds].Head.readyflag == 11 {
-			c.hub.clients[*c.userIds].Head.sm.Type = 3
-			if c.hub != nil {
-				go log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			}
-		}
-
-		_, message, err := c.conn.ReadMessage()
+		_, message, err := c.conn.ReadMessage() // This is a block func, once ws closed, this would be get err
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -51,40 +43,6 @@ func (c *Client) readPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
-
-		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
-			// start/stop training
-
-			//1. create namespace - default use "web" as the namespace
-			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
-				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
-				resourceOperator(c,
-					kubeconfigName,
-					"create",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
-				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
-				c.hub.clients[*c.userIds].Head.readyflag = 10
-				resourceOperator(c,
-					kubeconfigName,
-					"delete",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			}
-		}
 	}
 }
 
@@ -124,14 +82,6 @@ func (c *Client) writePump() {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			}
-
-			/*// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}*/
-
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
 				//log.Fatalln("websocket closed: ", err)
@@ -203,9 +153,9 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	set_gpu_rest(msgs.cltmp)
 	fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
 	client.hub.broadcast <- msgs.cltmp
-	//NOTE: log
-	/*client.userIds.Uid = msg.rm.Content.IDs.Uid
-	client.userIds.Tid = msg.rm.Content.IDs.Tid*/
+
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
+	go msgs.cltmp.execute()
+	go msgs.cltmp.logDisplay()
 }

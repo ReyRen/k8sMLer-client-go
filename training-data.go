@@ -19,6 +19,9 @@ type recvMsgContent struct {
 	SelectedNodes    int    `json:"selectedNodes"`
 	ModelType        int    `json:"modelType"`
 	Command          string `json:"command"`
+	FrameworkType    int    `json:"frameworkType"`
+	Params           string `json:"params"`
+	SelectedDataset  string `json:"selectedDataset"`
 }
 type Ids struct {
 	Uid int `json:"uid"`
