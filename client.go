@@ -33,10 +33,11 @@ func (c *Client) readPump() {
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-
 		if c.hub.clients[*c.userIds].Head.readyflag == 11 {
 			c.hub.clients[*c.userIds].Head.sm.Type = 3
-			go log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			if c.hub != nil {
+				go log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			}
 		}
 
 		_, message, err := c.conn.ReadMessage()

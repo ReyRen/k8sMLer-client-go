@@ -174,5 +174,7 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 	}
 	//return podLogs
 	defer podLogs.Close()
-	LogMonitor(c, podLogs)
+	if c.hub != nil {
+		LogMonitor(c, podLogs)
+	}
 }
