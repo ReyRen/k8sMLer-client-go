@@ -68,16 +68,6 @@ func (c *Client) readPump() {
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				/*resourceOperator(c,
-				kubeconfigName,
-				"log",
-				"pod",
-				nameSpace,
-				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-				"10Gi",
-				c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-				&c.hub.clients[*c.userIds].Head.rm.realPvcName)*/
 			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 				// assemble sm head type as resourceInfo
 				c.hub.clients[*c.userIds].Head.sm.Type = 2
@@ -122,59 +112,13 @@ func (c *Client) writePump() {
 				// Status code
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
-				//gpuSend, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				//w.Write(gpuSend)
 			} else if typeCode == 2 {
 				// resource msg
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			} else if typeCode == 3 {
-
-				/*resourceOperator(c,
-				kubeconfigName,
-				"log",
-				"pod",
-				nameSpace,
-				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-				"10Gi",
-				c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-				&c.hub.clients[*c.userIds].Head.rm.realPvcName)*/
-
-				//fmt.Println("entry the log msg")
-				//log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				//fmt.Println("end the log msg")
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
-				/*for i := 0; i < 100; i++ {
-					w.Write(sdmsg)
-					//time.Sleep(time.Second * 3)
-				}*/
-				// log msg
-				//podLogs := log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				//defer podLogs.Close()
-
-				//r := bufio.NewReader(podLogs)
-				//for {
-				/*line, err := r.ReadBytes('\n')
-				if err == io.EOF {
-					//time.Sleep(500 * time.Millisecond)
-					break
-				} else if err != nil {
-					log.Fatalln("read err: ", err)
-				}
-				//go func() {
-				c.hub.clients[*c.userIds].Head.sm.Content.Log = line
-				//sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				fmt.Println("entry the log msg")
-				//w.Write(sdmsg)*/
-				//w.Write(sdmsg)
-				//time.Sleep(time.Second * 2)
-				//os.Stdout.Write(line)
-				//}()
-				//}
-				/*sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)*/
 			} else {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
@@ -256,8 +200,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	client.hub.register <- &msgs
 
 	set_gpu_rest(msgs.cltmp)
-	fmt.Printf("%s is logged in userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
-	//client.hub.broadcast <- msgs.cltmp
+	fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
+	client.hub.broadcast <- msgs.cltmp
 	//NOTE: log
 	/*client.userIds.Uid = msg.rm.Content.IDs.Uid
 	client.userIds.Tid = msg.rm.Content.IDs.Tid*/

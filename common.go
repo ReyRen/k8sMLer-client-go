@@ -79,8 +79,10 @@ func LogMonitor(c *Client, rd io.Reader) {
 		go func() {
 			//fmt.Println(string(line))
 			//os.Stdout.Write(line)
-			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
-			c.hub.broadcast <- c
+			if c.hub != nil {
+				c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+				c.hub.broadcast <- c
+			}
 		}()
 		//fmt.Print(c.hub.clients[*c.userIds].Head.sm.Content.Log)
 	}
