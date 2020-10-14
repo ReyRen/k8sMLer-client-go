@@ -103,6 +103,9 @@ const (
 	maxMessageSize = 512
 
 	nameSpace = "web" // define the default namespace RS located
+
+	NOTLOGGED = 10
+	LOGSTART  = 11
 )
 
 var upgrader = websocket.Upgrader{
@@ -180,46 +183,13 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 
 func (c *Client) logDisplay() {
 	for true {
-		if c.hub.clients[*c.userIds].Head.readyflag == 11 {
-			c.hub.clients[*c.userIds].Head.sm.Type = 3
-			if c.addr != "" {
-				log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			}
-		}
-	}
-}
-
-func (c *Client) execute() {
-	for true {
-		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
-			//1. create namespace - default use "web" as the namespace
-			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" && c.hub.clients[*c.userIds].Head.executeflag != 21 {
-				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
-				resourceOperator(c,
-					kubeconfigName,
-					"create",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" && c.hub.clients[*c.userIds].Head.executeflag != 22 {
-				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
-				c.hub.clients[*c.userIds].Head.readyflag = 10
-				resourceOperator(c,
-					kubeconfigName,
-					"delete",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+		select {
+		case logFlag := <-c.hub.clients[*c.userIds].Head.logChan:
+			if logFlag == LOGSTART {
+				c.hub.clients[*c.userIds].Head.sm.Type = 3
+				if c.addr != "" {
+					log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				}
 			}
 		}
 	}

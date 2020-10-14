@@ -4,7 +4,6 @@ import (
 	//	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	//"io"
 	"log"
@@ -41,8 +40,38 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
+		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
+		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
+			//1. create namespace - default use "web" as the namespace
+			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				resourceOperator(c,
+					kubeconfigName,
+					"create",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+				// assemble sm head type as resourceInfo
+				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			}
+		}
 	}
 }
 
@@ -144,18 +173,22 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
-	fmt.Println(string(message))
+	//fmt.Println(string(message))
 
 	jsonHandler(message, &rmtmp)
 
 	client.hub.register <- &msgs
 
 	set_gpu_rest(msgs.cltmp)
-	fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
+	//fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
 	client.hub.broadcast <- msgs.cltmp
 
+	go msgs.cltmp.logDisplay()
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
-	go msgs.cltmp.execute()
-	go msgs.cltmp.logDisplay()
+
+	// used for !first client
+	if msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag == LOGSTART {
+		msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logChan <- msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag
+	}
 }

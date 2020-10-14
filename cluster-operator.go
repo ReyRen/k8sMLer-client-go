@@ -61,7 +61,6 @@ func resourceOperator(c *Client,
 		fmt.Println("create operation...")
 		switch resource {
 		case "pod":
-			c.hub.clients[*c.userIds].Head.executeflag = 21
 			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
@@ -125,14 +124,9 @@ func resourceOperator(c *Client,
 					}
 				}
 			}
-			//if c.addr != "" {
-			// assemble sm head type as log
 			time.Sleep(time.Second * 3) // used to handle concurrence issue
-			c.hub.clients[*c.userIds].Head.readyflag = 11
-			//}
-			/*c.hub.clients[*c.userIds].Head.sm.Type = 3
-			go log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,&c.hub.clients[*c.userIds].Head.rm.realPvcName)*/
-			//c.hub.broadcast <- c
+			c.hub.clients[*c.userIds].Head.logFlag = LOGSTART
+			c.hub.clients[*c.userIds].Head.logChan <- c.hub.clients[*c.userIds].Head.logFlag
 		case "service":
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":
@@ -145,7 +139,6 @@ func resourceOperator(c *Client,
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
-			c.hub.clients[*c.userIds].Head.executeflag = 22
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				//Update_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr)

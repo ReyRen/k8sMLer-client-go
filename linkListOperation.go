@@ -14,9 +14,9 @@ type headNode struct {
 	sm *sendMsg
 	rm *recvMsg
 	//broadcast chan *sendMsg
-	readyflag   int
-	executeflag int
-	next        *Node
+	logFlag int
+	logChan chan int
+	next    *Node
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -34,9 +34,9 @@ func NewSocketList(msg *msg) *SameIdsLinkList {
 		sm: msg.sm,
 		rm: msg.rm,
 		//broadcast: make(chan *sendMsg),
-		readyflag:   10,
-		executeflag: 20,
-		next:        nil,
+		logFlag: NOTLOGGED,
+		logChan: make(chan int),
+		next:    nil,
 	}
 	return &SameIdsLinkList{head}
 }
