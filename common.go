@@ -76,14 +76,11 @@ func LogMonitor(c *Client, rd io.Reader) {
 		} else if err != nil {
 			log.Fatalln("read err: ", err)
 		}
-		//func() {
-		//os.Stdout.Write(line)
 		if c.addr != "" {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.broadcast <- c
 		}
-		//}()
 	}
 }
 
@@ -204,10 +201,14 @@ func (c *Client) logDisplay() {
 		select {
 		case logFlag := <-c.hub.clients[*c.userIds].Head.logChan:
 			if logFlag == LOGSTART {
-				//c.hub.clients[*c.userIds].Head.sm.Type = 3
 				if c.addr != "" {
 					log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				}
+			}
+		case exit := <-c.send:
+			// goroutine exit
+			if string(exit) == "exit" {
+				return
 			}
 		}
 	}

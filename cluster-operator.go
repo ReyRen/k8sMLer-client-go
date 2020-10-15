@@ -61,12 +61,19 @@ func resourceOperator(c *Client,
 		fmt.Println("create operation...")
 		switch resource {
 		case "pod":
+
+			// respond to frontend get start msg
+			c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+			c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTART
+			if c.addr != "" {
+				c.hub.broadcast <- c
+			}
+
 			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, labelName, &gracePeriodSeconds)
 				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, nodeQuantity)
-				//time.Sleep(time.Second * 3)
 				for true {
 					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {
@@ -139,6 +146,14 @@ func resourceOperator(c *Client,
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
+
+			// respond to frontend get stop msg
+			c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+			c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTOP
+			if c.addr != "" {
+				c.hub.broadcast <- c
+			}
+
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				//Update_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr)

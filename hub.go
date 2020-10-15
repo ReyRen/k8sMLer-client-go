@@ -47,6 +47,10 @@ func (h *Hub) run() {
 			}
 		case client := <-h.unregister:
 			h.clients[*client.userIds].Remove(client)
+			client.send <- []byte("exit")
+			if client.send != nil {
+				close(client.send)
+			}
 			fmt.Printf("%s is logged out from userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 		}
 	}

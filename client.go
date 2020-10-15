@@ -36,54 +36,44 @@ func (c *Client) readPump() {
 				log.Printf("error: %v", err)
 			}
 			//flush websites and close website would caused ReadMessage err and trigger defer func
-			break
+			return
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
+		go func() {
+			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
+				//1. create namespace - default use "web" as the namespace
+				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+					// assemble sm head type as resourceInfo
+					//c.hub.clients[*c.userIds].Head.sm.Type = 2
+					resourceOperator(c,
+						kubeconfigName,
+						"create",
+						"pod",
+						nameSpace,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 
-		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
-			//1. create namespace - default use "web" as the namespace
-			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
-
-				// respond to frontend get start msg
-				c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-				c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTART
-				c.hub.broadcast <- c
-
-				// assemble sm head type as resourceInfo
-				//c.hub.clients[*c.userIds].Head.sm.Type = 2
-				resourceOperator(c,
-					kubeconfigName,
-					"create",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
-			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
-
-				// respond to frontend get stop msg
-				c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-				c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTOP
-				c.hub.broadcast <- c
-
-				// assemble sm head type as resourceInfo
-				//c.hub.clients[*c.userIds].Head.sm.Type = 2
-				resourceOperator(c,
-					kubeconfigName,
-					"delete",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+					// assemble sm head type as resourceInfo
+					//c.hub.clients[*c.userIds].Head.sm.Type = 2
+					resourceOperator(c,
+						kubeconfigName,
+						"delete",
+						"pod",
+						nameSpace,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				}
 			}
-		}
+		}()
 	}
 }
 
@@ -218,8 +208,9 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
 
-	// used for !first client
+	// used for !first client and log already in
 	if msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag == LOGSTART {
 		msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logChan <- msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag
+		return
 	}
 }
