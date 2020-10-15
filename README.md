@@ -1,6 +1,8 @@
+# OBSOLETED README
+
 # k8sMLer-client-go
 Based on kubernetes/client-go API to talk with Kubernetes
-打造出一套基于API的自定义集群操作工具
+打造出一基于API的自定义集群操作工具
 
 **INSTALL:**
 
