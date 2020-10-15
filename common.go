@@ -76,14 +76,14 @@ func LogMonitor(c *Client, rd io.Reader) {
 		} else if err != nil {
 			log.Fatalln("read err: ", err)
 		}
-		go func() {
-			//fmt.Println(string(line))
-			//os.Stdout.Write(line)
-			if c.addr != "" {
-				c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
-				c.hub.broadcast <- c
-			}
-		}()
+		//func() {
+		//os.Stdout.Write(line)
+		if c.addr != "" {
+			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
+			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+			c.hub.broadcast <- c
+		}
+		//}()
 	}
 }
 
@@ -102,10 +102,28 @@ const (
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
 
-	nameSpace = "web" // define the default namespace RS located
+	// define the default namespace RS located
+	nameSpace = "web"
 
+	// log for flushed client
 	NOTLOGGED = 10
 	LOGSTART  = 11
+
+	// statusCode to frontend
+	RECVSTART           = 10 // click start
+	RECVSTOP            = 11 // click stop
+	TRAININGSTART       = 12 // after rs ready and code running
+	TRAININGSTOPSUCCESS = 13 // success finished
+	TRAININGSTOPFAILED  = 14 // error finished
+
+	TRAININGLOGDONE  = "Done\n"
+	TRAININGLOGSTART = "Start\n"
+	TRAININGLOGERR   = "Err\n"
+
+	// Type Code
+	STATUSRESPOND   = 1
+	RESOURCERESPOND = 2
+	LOGRESPOND      = 3
 )
 
 var upgrader = websocket.Upgrader{
@@ -186,7 +204,7 @@ func (c *Client) logDisplay() {
 		select {
 		case logFlag := <-c.hub.clients[*c.userIds].Head.logChan:
 			if logFlag == LOGSTART {
-				c.hub.clients[*c.userIds].Head.sm.Type = 3
+				//c.hub.clients[*c.userIds].Head.sm.Type = 3
 				if c.addr != "" {
 					log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				}

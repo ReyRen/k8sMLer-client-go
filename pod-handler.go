@@ -26,7 +26,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 	if currentI == totalI-1 {
 		// last one pod
 		//args = []string{"wget -P /usr/share/horovod http://172.18.29.81/ftp/model/test_auto.py;sleep 5;python /usr/share/horovod/test_auto.py"}
-		args = []string{"python /usr/share/horovod/test_auto.py"}
+		args = []string{"python /usr/share/horovod/test_auto.py;tail -f /dev/null"}
 		//args = []string{"python tensorflow_mnist.py"}
 	} else {
 		args = []string{base_tail}

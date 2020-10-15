@@ -1,14 +1,13 @@
 package main
 
 import (
-	//	"bufio"
 	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	//"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -42,11 +41,18 @@ func (c *Client) readPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
+
 		if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
 			//1. create namespace - default use "web" as the namespace
 			if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+
+				// respond to frontend get start msg
+				c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+				c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTART
+				c.hub.broadcast <- c
+
 				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				//c.hub.clients[*c.userIds].Head.sm.Type = 2
 				resourceOperator(c,
 					kubeconfigName,
 					"create",
@@ -58,8 +64,14 @@ func (c *Client) readPump() {
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+
+				// respond to frontend get stop msg
+				c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+				c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTOP
+				c.hub.broadcast <- c
+
 				// assemble sm head type as resourceInfo
-				c.hub.clients[*c.userIds].Head.sm.Type = 2
+				//c.hub.clients[*c.userIds].Head.sm.Type = 2
 				resourceOperator(c,
 					kubeconfigName,
 					"delete",
@@ -96,17 +108,36 @@ func (c *Client) writePump() {
 				return
 			}
 
-			if typeCode == 1 {
+			if typeCode == STATUSRESPOND {
 				// Status code
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
-			} else if typeCode == 2 {
+			} else if typeCode == RESOURCERESPOND {
 				// resource msg
+				/*sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				w.Write(sdmsg)*/
+			} else if typeCode == LOGRESPOND {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
-			} else if typeCode == 3 {
-				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)
+
+				logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
+				if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGDONE {
+					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
+					c.hub.broadcast <- c
+
+				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
+
+					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
+					c.hub.broadcast <- c
+
+				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
+
+					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
+					c.hub.broadcast <- c
+				}
 			} else {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
