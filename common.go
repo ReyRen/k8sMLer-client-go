@@ -80,6 +80,8 @@ func LogMonitor(c *Client, rd io.Reader) {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.broadcast <- c
+		} else {
+			break
 		}
 	}
 }
@@ -187,7 +189,8 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 	})
 	podLogs, err := result.Stream(context.TODO())
 	if err != nil {
-		log.Fatalln("podLogs stream err : ", err)
+		log.Println("podLogs stream err : ", err)
+		return
 	}
 	//return podLogs
 	defer podLogs.Close()
@@ -199,16 +202,19 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 func (c *Client) logDisplay() {
 	for true {
 		select {
+		/*
+			select/case only execute one readied IO (randomly),
+			once go into one IO and not retured (stuck in for), another IO won't be executed even if IO ready
+			but go routine still over there, so it needs to be exited
+		*/
+		case <-c.goroutineClose:
+			// goroutine exit
+			return
 		case logFlag := <-c.hub.clients[*c.userIds].Head.logChan:
 			if logFlag == LOGSTART {
 				if c.addr != "" {
 					log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				}
-			}
-		case exit := <-c.send:
-			// goroutine exit
-			if string(exit) == "exit" {
-				return
 			}
 		}
 	}

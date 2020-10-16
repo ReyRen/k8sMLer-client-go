@@ -72,14 +72,22 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	head := list.Head // *headNode
 	if head.next.client == client {
 		head.next = head.next.next
+		if client.send != nil {
+			close(client.send)
+		}
 		client.addr = ""
+		client.goroutineClose <- []byte("1")
 		return nil
 	} else {
 		current := head.next
 		for current.next != nil {
 			if current.next.client == client {
 				current.next = current.next.next
+				if client.send != nil {
+					close(client.send)
+				}
 				client.addr = ""
+				client.goroutineClose <- []byte("1")
 				return nil
 			}
 			current = current.next

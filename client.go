@@ -12,11 +12,12 @@ import (
 )
 
 type Client struct {
-	hub     *Hub
-	conn    *websocket.Conn
-	userIds *Ids
-	send    chan []byte
-	addr    string
+	hub            *Hub
+	conn           *websocket.Conn
+	userIds        *Ids
+	send           chan []byte
+	goroutineClose chan []byte
+	addr           string
 }
 
 var kubeconfigName string
@@ -104,8 +105,8 @@ func (c *Client) writePump() {
 				w.Write(sdmsg)
 			} else if typeCode == RESOURCERESPOND {
 				// resource msg
-				/*sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)*/
+				//sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+				//w.Write(sdmsg)
 			} else if typeCode == LOGRESPOND {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
@@ -176,11 +177,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	msgs.sm = &smtmp
 
 	client := &Client{
-		hub:     hub,
-		conn:    conn,
-		userIds: rmtmp.Content.IDs, // initialize is null
-		send:    make(chan []byte),
-		addr:    conn.RemoteAddr().String(),
+		hub:            hub,
+		conn:           conn,
+		userIds:        rmtmp.Content.IDs, // initialize is null
+		send:           make(chan []byte),
+		goroutineClose: make(chan []byte),
+		addr:           conn.RemoteAddr().String(),
 	}
 	// assemble client to once msg
 	msgs.cltmp = client
