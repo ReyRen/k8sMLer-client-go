@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"log"
+	"strings"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
@@ -15,6 +16,10 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 	containName := podName + "-container-" + tmpString
 	// assemble a pod name
 	//podName = podName + "-pod-" + tmpString
+
+	// multus-cni for different interface in pods
+	multus := make(map[string]string)
+	multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
 
 	// volumeMount
 	mountPath := "/usr/share/horovod"
@@ -42,7 +47,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        podName,
 			Labels:      map[string]string{labelName: labelName},
-			Annotations: nil, // need for multus-cni
+			Annotations: multus, // need for multus-cni
 		},
 		Spec: apiv1.PodSpec{
 			Volumes: []apiv1.Volume{
@@ -57,8 +62,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 			},
 			Containers: []apiv1.Container{
 				{
-					Name:    containName,
-					Image:   "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
+					Name: containName,
+					//Image:   "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
+					Image:   "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot", // testing
 					Command: []string{"/bin/sh", "-c"},
 					//Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
 					Args:       args,
@@ -151,7 +157,22 @@ func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
 	var podv1 *apiv1.Pod
 
 	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
-	//a.GetAnnotations()
+	test := podv1.GetAnnotations()
+	if podv1.Status.Phase == apiv1.PodRunning {
+		for k, v := range test {
+			//fmt.Println(k, v)
+			if k == "k8s.v1.cni.cncf.io/networks-status" {
+				//fmt.Println(v)
+				vv := strings.Fields(v)
+				for _, ips := range vv {
+					if strings.Contains(ips, "192.168.100.") {
+						fmt.Println(trimQuotes(ips))
+					}
+				}
+				break
+			}
+		}
+	}
 	//podCondition := podv1.Status.Conditions
 	/*
 		podCondition[0].Status:False
@@ -159,6 +180,9 @@ func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
 		podCondition[0].Reason:Unschedulable
 		podCondition[0].podPhase:Pending
 	*/
+	/*apiv1.ExecCommandParam
+	remotecommand.Executor()*/
+
 	return podv1.Status.Phase
 
 }
