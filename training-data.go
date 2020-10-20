@@ -2,9 +2,10 @@ package main
 
 // global msg used to recv or send
 type msg struct {
-	rm    *recvMsg
-	sm    *sendMsg
-	cltmp *Client
+	rm        *recvMsg
+	sm        *sendMsg
+	socketmsg *clientsocketmsg
+	cltmp     *Client
 }
 
 type recvMsg struct {
@@ -43,8 +44,12 @@ type sendMsgContentGpu struct {
 	GpuUsed     string `json:"gpuUsed"`
 }
 type resourceInfo struct {
-	/*Status   string `json:"status`
-	Message  string `json:"message"`
-	Reason   string `json:"reason"`*/
 	PodPhase string `json:"podPhase"`
+}
+
+// clientsocket send msg
+type clientsocketmsg struct {
+	Uid      int `json:"uid"`
+	Tid      int `json:"tid"`
+	StatusId int `json:"statusId"`
 }

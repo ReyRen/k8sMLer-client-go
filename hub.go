@@ -29,6 +29,7 @@ func (h *Hub) run() {
 			if h.clients[*msg.cltmp.userIds] == nil {
 				// not exist [uid,tid] key
 				headList := NewSocketList(msg)
+				go headList.linklistRun() // used for log control
 				headList.Append(newNode(msg.cltmp, nil))
 				h.clients[*msg.cltmp.userIds] = headList
 				fmt.Printf("userIds[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
@@ -39,7 +40,7 @@ func (h *Hub) run() {
 				fmt.Printf("userIds[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
 			}
-		case broadcastClient := <-h.broadcast:
+		case broadcastClient := <-h.broadcast: // only broadcast client msg(small)
 			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
 			for currentList != nil {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))

@@ -13,7 +13,8 @@ import (
 func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, cap string) string {
 
 	// sc name
-	scName := "web-nfs"
+	//scName := "web-nfs"
+	scName := "nfs-sc"
 
 	// annotation key
 	//annKey := "volume.beta.kubernetes.io/storage-class"
@@ -81,7 +82,7 @@ func Delete_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, lab
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,
 		}); err != nil {
-			log.Fatalln("delete pvc err:", err)
+			log.Println("delete pvc err:", err)
 		}
 		fmt.Printf("deleted pvc %s\n", pvcName)
 	} else {

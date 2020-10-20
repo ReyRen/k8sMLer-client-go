@@ -77,63 +77,21 @@ func resourceOperator(c *Client,
 				for true {
 					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {
-						// assemble sm
-						//c.hub.clients[*c.userIds].Head.sm.Type = 2
-						/*c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons*/
-						//c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
-						//if c.addr != "" {
-						//c.hub.broadcast <- c
-						//}
 						break
 					} else if podPhase == apiv1.PodPending {
-						//c.hub.clients[*c.userIds].Head.sm.Type = 2
-						/*c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons*/
-						//c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
-						//if c.addr != "" {
-						//c.hub.broadcast <- c
-						//}
 						time.Sleep(time.Second * 3)
 					} else if podPhase == apiv1.PodFailed {
-						//if c.addr != "" {
-						//c.hub.clients[*c.userIds].Head.sm.Type = 2
-						/*c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons*/
-						//c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
-						//c.hub.broadcast <- c
-						//}
 						break
 					} else if podPhase == apiv1.PodSucceeded {
-						//if c.addr != "" {
-						//c.hub.clients[*c.userIds].Head.sm.Type = 2
-						/*c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons*/
-						//c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
-						//c.hub.broadcast <- c
-						//}
 						break
 					} else if podPhase == apiv1.PodUnknown {
-						//if c.addr != "" {
-						//c.hub.clients[*c.userIds].Head.sm.Type = 2
-						/*c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Status = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(status)
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Message = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + messages
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.Reason = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + reasons
-						c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)*/
-						//c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.PodPhase = kindName + strconv.Itoa(i) + "-pod-" + tmpString + ": " + string(podPhase)
-						//c.hub.broadcast <- c
-						//}
 						break
 					}
 				}
 			}
-			time.Sleep(time.Second * 3) // used to handle concurrence issue
-			c.hub.clients[*c.userIds].Head.logFlag = LOGSTART
-			c.hub.clients[*c.userIds].Head.logChan <- c.hub.clients[*c.userIds].Head.logFlag
+			//handle socket with the frontend
+			clientSocket(c, 5)
+			log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
 		case "service":
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":
@@ -146,14 +104,6 @@ func resourceOperator(c *Client,
 		fmt.Println("delete operation...")
 		switch resource {
 		case "pod":
-
-			// respond to frontend get stop msg
-			c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-			c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTOP
-			if c.addr != "" {
-				c.hub.broadcast <- c
-			}
-
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				//Update_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr)

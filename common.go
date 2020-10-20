@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"math/rand"
+	"net"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -71,17 +72,16 @@ func LogMonitor(c *Client, rd io.Reader) {
 	for {
 		line, err := r.ReadBytes('\n')
 		if err == io.EOF {
-			//time.Sleep(500 * time.Millisecond)
 			break
 		} else if err != nil {
 			log.Fatalln("read err: ", err)
 		}
-		if c.addr != "" {
-			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
-			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
-			c.hub.broadcast <- c
-		} else {
-			break
+
+		c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
+		c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+		c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
+		if strings.ContainsAny(string(line), "Start") || strings.ContainsAny(string(line), "Err") || strings.ContainsAny(string(line), "Done") {
+			_ = <-c.hub.clients[*c.userIds].Head.singlechan
 		}
 	}
 }
@@ -194,30 +194,7 @@ func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, no
 	}
 	//return podLogs
 	defer podLogs.Close()
-	if c.addr != "" {
-		LogMonitor(c, podLogs)
-	}
-}
-
-func (c *Client) logDisplay() {
-	for true {
-		select {
-		/*
-			select/case only execute one readied IO (randomly),
-			once go into one IO and not retured (stuck in for), another IO won't be executed even if IO ready
-			but go routine still over there, so it needs to be exited
-		*/
-		case <-c.goroutineClose:
-			// goroutine exit
-			return
-		case logFlag := <-c.hub.clients[*c.userIds].Head.logChan:
-			if logFlag == LOGSTART {
-				if c.addr != "" {
-					log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
-				}
-			}
-		}
-	}
+	LogMonitor(c, podLogs)
 }
 
 func trimQuotes(s string) string {
@@ -227,4 +204,23 @@ func trimQuotes(s string) string {
 		}
 	}
 	return s
+}
+
+func clientSocket(c *Client, statusCode int) {
+	// create socket with end
+	conn, err := net.Dial("tcp", "10.1.20.97:8081")
+	if err != nil {
+		fmt.Println("clientSocket err: ", err)
+		return
+	}
+	defer conn.Close()
+	var clientmsg clientsocketmsg
+	clientmsg.Uid = c.userIds.Uid
+	clientmsg.Tid = c.userIds.Tid
+	clientmsg.StatusId = statusCode
+	socketmsg, _ := json.Marshal(clientmsg)
+	_, err = conn.Write(socketmsg)
+	if err != nil {
+		log.Println("socketclient send err:", err)
+	}
 }

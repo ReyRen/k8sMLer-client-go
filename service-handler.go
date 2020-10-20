@@ -74,7 +74,7 @@ func Delete_service(svcClient v1.ServiceInterface, serviceName string, gracePeri
 		GracePeriodSeconds: gracePeriodSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}); err != nil {
-		log.Fatalln("delete svc err: ", err)
+		log.Println("delete svc err: ", err)
 	}
 	fmt.Printf("deleted service %s\n", serviceName)
 }

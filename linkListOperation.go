@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 // first the linklist
@@ -11,12 +12,11 @@ type Node struct {
 	next   *Node
 }
 type headNode struct {
-	sm *sendMsg
-	rm *recvMsg
-	//broadcast chan *sendMsg
-	logFlag int
-	logChan chan int
-	next    *Node
+	sm         *sendMsg
+	rm         *recvMsg
+	logchan    chan *sendMsg
+	singlechan chan []byte
+	next       *Node
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -31,12 +31,11 @@ func newNode(client *Client, next *Node) *Node {
 
 func NewSocketList(msg *msg) *SameIdsLinkList {
 	head := &headNode{
-		sm: msg.sm,
-		rm: msg.rm,
-		//broadcast: make(chan *sendMsg),
-		logFlag: NOTLOGGED,
-		logChan: make(chan int),
-		next:    nil,
+		sm:         msg.sm,
+		rm:         msg.rm,
+		logchan:    make(chan *sendMsg),
+		singlechan: make(chan []byte),
+		next:       nil,
 	}
 	return &SameIdsLinkList{head}
 }
@@ -76,7 +75,7 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 			close(client.send)
 		}
 		client.addr = ""
-		client.goroutineClose <- []byte("1")
+		//client.goroutineClose <- []byte("1")
 		return nil
 	} else {
 		current := head.next
@@ -87,7 +86,7 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 					close(client.send)
 				}
 				client.addr = ""
-				client.goroutineClose <- []byte("1")
+				//client.goroutineClose <- []byte("1")
 				return nil
 			}
 			current = current.next
@@ -115,4 +114,17 @@ func (list *SameIdsLinkList) PrintList() {
 	}
 	fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
 	return
+}
+
+func (head *SameIdsLinkList) linklistRun() {
+	for true {
+		select {
+		case msgs := <-head.Head.logchan:
+			currentList := head.Head.next
+			for currentList != nil {
+				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				currentList = currentList.next
+			}
+		}
+	}
 }

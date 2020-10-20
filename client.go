@@ -16,6 +16,7 @@ type Client struct {
 	conn           *websocket.Conn
 	userIds        *Ids
 	send           chan []byte
+	sendLog        chan []byte
 	goroutineClose chan []byte
 	addr           string
 }
@@ -42,12 +43,14 @@ func (c *Client) readPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
+
 		go func() {
 			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
+
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
-					// assemble sm head type as resourceInfo
-					//c.hub.clients[*c.userIds].Head.sm.Type = 2
+					//handle socket with the frontend
+					clientSocket(c, 4)
 					resourceOperator(c,
 						kubeconfigName,
 						"create",
@@ -60,8 +63,6 @@ func (c *Client) readPump() {
 						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
-					// assemble sm head type as resourceInfo
-					//c.hub.clients[*c.userIds].Head.sm.Type = 2
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",
@@ -86,7 +87,7 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case msg, ok := <-c.send:
+		case msg, ok := <-c.sendLog: // handle log
 			typeCode, _ := strconv.Atoi(string(msg))
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -99,40 +100,56 @@ func (c *Client) writePump() {
 				return
 			}
 
-			if typeCode == STATUSRESPOND {
-				// Status code
-				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)
-			} else if typeCode == RESOURCERESPOND {
-				// resource msg
-				//sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				//w.Write(sdmsg)
-			} else if typeCode == LOGRESPOND {
-				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)
+			if typeCode == LOGRESPOND {
 
 				logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
+
 				if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGDONE {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
+					clientSocket(c, 7)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
+					clientSocket(c, 8)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
 					c.hub.broadcast <- c
+					clientSocket(c, 6)
+					// block
+					c.hub.clients[*c.userIds].Head.singlechan <- []byte("x")
 				}
-			} else {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			}
+			if err := w.Close(); err != nil {
+				log.Println("websocket closed:", err)
+				//log.Fatalln("websocket closed: ", err)
+				return
+			}
+		case _, ok := <-c.send:
+			//typeCode, _ := strconv.Atoi(string(msg))
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			w, err := c.conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+
+			sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm) // STATUSRESPOND or GPU
+			w.Write(sdmsg)
+
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
 				//log.Fatalln("websocket closed: ", err)
@@ -181,6 +198,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		conn:           conn,
 		userIds:        rmtmp.Content.IDs, // initialize is null
 		send:           make(chan []byte),
+		sendLog:        make(chan []byte),
 		goroutineClose: make(chan []byte),
 		addr:           conn.RemoteAddr().String(),
 	}
@@ -206,13 +224,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
 	client.hub.broadcast <- msgs.cltmp
 
-	go msgs.cltmp.logDisplay()
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
 
-	// used for !first client and log already in
-	if msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag == LOGSTART {
-		msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logChan <- msgs.cltmp.hub.clients[*msgs.cltmp.userIds].Head.logFlag
-		return
-	}
 }
