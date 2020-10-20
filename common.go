@@ -80,8 +80,8 @@ func LogMonitor(c *Client, rd io.Reader) {
 		c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 		c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 		c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-		if strings.ContainsAny(string(line), "Start") || strings.ContainsAny(string(line), "Err") || strings.ContainsAny(string(line), "Done") {
-			_ = <-c.hub.clients[*c.userIds].Head.singlechan
+		if strings.ContainsAny(string(line), TRAININGLOGSTART) || strings.ContainsAny(string(line), TRAININGLOGERR) || strings.ContainsAny(string(line), TRAININGLOGDONE) {
+			_ = <-c.hub.clients[*c.userIds].Head.singlechan // block
 		}
 	}
 }
@@ -104,10 +104,6 @@ const (
 	// define the default namespace RS located
 	nameSpace = "web"
 
-	// log for flushed client
-	NOTLOGGED = 10
-	LOGSTART  = 11
-
 	// statusCode to frontend
 	RECVSTART           = 10 // click start
 	RECVSTOP            = 11 // click stop
@@ -123,6 +119,13 @@ const (
 	STATUSRESPOND   = 1
 	RESOURCERESPOND = 2
 	LOGRESPOND      = 3
+
+	// Status code for end
+	WAITINGRESOURCE       = 4
+	RESOURCECOMPLETE      = 5
+	ENDTRAININGSTART      = 6
+	ENDTRAININGSTOPNORMAL = 7
+	ENDTRAININGSTOPFAIL   = 8
 )
 
 var upgrader = websocket.Upgrader{

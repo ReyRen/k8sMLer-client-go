@@ -122,7 +122,7 @@ func (head *SameIdsLinkList) linklistRun() {
 		case msgs := <-head.Head.logchan:
 			currentList := head.Head.next
 			for currentList != nil {
-				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type)) // sendlog cannot close or won't send to next client
 				currentList = currentList.next
 			}
 		}

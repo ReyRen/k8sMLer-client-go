@@ -50,7 +50,7 @@ func (c *Client) readPump() {
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					//handle socket with the frontend
-					clientSocket(c, 4)
+					clientSocket(c, WAITINGRESOURCE)
 					resourceOperator(c,
 						kubeconfigName,
 						"create",
@@ -108,21 +108,21 @@ func (c *Client) writePump() {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
-					clientSocket(c, 7)
+					clientSocket(c, ENDTRAININGSTOPNORMAL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
-					clientSocket(c, 8)
+					clientSocket(c, ENDTRAININGSTOPFAIL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
 					c.hub.broadcast <- c
-					clientSocket(c, 6)
+					clientSocket(c, ENDTRAININGSTART)
 					// block
 					c.hub.clients[*c.userIds].Head.singlechan <- []byte("x")
 				}
