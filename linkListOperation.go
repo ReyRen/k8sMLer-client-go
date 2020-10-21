@@ -16,6 +16,7 @@ type headNode struct {
 	rm         *recvMsg
 	logchan    chan *sendMsg
 	singlechan chan []byte
+	ips        string
 	next       *Node
 }
 type SameIdsLinkList struct {
@@ -35,6 +36,7 @@ func NewSocketList(msg *msg) *SameIdsLinkList {
 		rm:         msg.rm,
 		logchan:    make(chan *sendMsg),
 		singlechan: make(chan []byte),
+		ips:        "",
 		next:       nil,
 	}
 	return &SameIdsLinkList{head}

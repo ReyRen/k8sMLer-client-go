@@ -43,14 +43,13 @@ func (c *Client) readPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
-
 		go func() {
 			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
 
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					//handle socket with the frontend
-					clientSocket(c, WAITINGRESOURCE)
+					//clientSocket(c, WAITINGRESOURCE)
 					resourceOperator(c,
 						kubeconfigName,
 						"create",
@@ -108,21 +107,21 @@ func (c *Client) writePump() {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
-					clientSocket(c, ENDTRAININGSTOPNORMAL)
+					//clientSocket(c, ENDTRAININGSTOPNORMAL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
-					clientSocket(c, ENDTRAININGSTOPFAIL)
+					//clientSocket(c, ENDTRAININGSTOPFAIL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
 					c.hub.broadcast <- c
-					clientSocket(c, ENDTRAININGSTART)
+					//clientSocket(c, ENDTRAININGSTART)
 					// block
 					c.hub.clients[*c.userIds].Head.singlechan <- []byte("x")
 				}

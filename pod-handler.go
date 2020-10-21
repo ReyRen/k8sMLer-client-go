@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"log"
+	"strings"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
@@ -21,17 +22,16 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 	multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
 
 	// volumeMount
-	mountPath := "/usr/share/horovod"
+	mountPath := MOUNTPATH
 	mountName := podName + "-mount-" + tmpString
 
 	// get the execute args
 	var args []string
-	base_tail := "wget -P /usr/share/horovod http://172.18.29.81/ftp/model/test_auto.py;tail -f /dev/null"
+	master_tail := "/etc/init.d/ssh start > /dev/null; " + "python " + EXEC_IN_POD + ";tail -f /dev/null"
+	base_tail := "/etc/init.d/ssh start; wget -P " + MOUNTPATH + " " + INIT_FTP_URL + "; wget -P " + MOUNTPATH + " " + PARAMS_TRANS + ";tail -f /dev/null"
 	if currentI == totalI-1 {
 		// last one pod
-		//args = []string{"wget -P /usr/share/horovod http://172.18.29.81/ftp/model/test_auto.py;sleep 5;python /usr/share/horovod/test_auto.py"}
-		args = []string{"python /usr/share/horovod/test_auto.py;tail -f /dev/null"}
-		//args = []string{"python tensorflow_mnist.py"}
+		args = []string{master_tail}
 	} else {
 		args = []string{base_tail}
 	}
@@ -44,9 +44,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 
 	*pods = apiv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   podName,
-			Labels: map[string]string{labelName: labelName},
-			//Annotations: multus, // need for multus-cni
+			Name:        podName,
+			Labels:      map[string]string{labelName: labelName},
+			Annotations: multus, // need for multus-cni
 		},
 		Spec: apiv1.PodSpec{
 			Volumes: []apiv1.Volume{
@@ -61,9 +61,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 			},
 			Containers: []apiv1.Container{
 				{
-					Name:  containName,
-					Image: "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
-					//Image:   "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot", // testing
+					Name: containName,
+					//Image: "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
+					Image:   IMAGE,
 					Command: []string{"/bin/sh", "-c"},
 					//Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
 					Args:       args,
@@ -153,25 +153,8 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 }
 
 func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
-	var podv1 *apiv1.Pod
 
-	podv1, _ = podClient.Get(context.TODO(), podName, metav1.GetOptions{})
-	/*test := podv1.GetAnnotations()
-	if podv1.Status.Phase == apiv1.PodRunning {
-		for k, v := range test {
-			//fmt.Println(k, v)
-			if k == "k8s.v1.cni.cncf.io/networks-status" {
-				//fmt.Println(v)
-				vv := strings.Fields(v)
-				for _, ips := range vv {
-					if strings.Contains(ips, "192.168.100.") {
-						fmt.Println(trimQuotes(ips))
-					}
-				}
-				break
-			}
-		}
-	}*/
+	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
 	//podCondition := podv1.Status.Conditions
 	/*
 		podCondition[0].Status:False
@@ -183,5 +166,23 @@ func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
 	remotecommand.Executor()*/
 
 	return podv1.Status.Phase
+}
 
+func get_10G_ips(podClient v1.PodInterface, podName string) string {
+	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
+	annotations := podv1.GetAnnotations()
+
+	for k, v := range annotations {
+		//fmt.Println(k, v)
+		if k == "k8s.v1.cni.cncf.io/networks-status" {
+			vv := strings.Fields(v)
+			for _, ips := range vv {
+				if strings.Contains(ips, MATCHIPS) {
+					return trimQuotes(ips)
+				}
+			}
+			break
+		}
+	}
+	return ""
 }

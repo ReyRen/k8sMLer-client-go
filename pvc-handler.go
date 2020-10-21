@@ -13,8 +13,8 @@ import (
 func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, cap string) string {
 
 	// sc name
-	//scName := "web-nfs"
-	scName := "nfs-sc"
+	scName := "web-nfs"
+	//scName := "nfs-sc"
 
 	// annotation key
 	//annKey := "volume.beta.kubernetes.io/storage-class"

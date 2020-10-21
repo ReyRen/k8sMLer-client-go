@@ -76,11 +76,11 @@ func LogMonitor(c *Client, rd io.Reader) {
 		} else if err != nil {
 			log.Fatalln("read err: ", err)
 		}
-
+		fmt.Println(string(line))
 		c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 		c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 		c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-		if strings.ContainsAny(string(line), TRAININGLOGSTART) || strings.ContainsAny(string(line), TRAININGLOGERR) || strings.ContainsAny(string(line), TRAININGLOGDONE) {
+		if strings.Contains(string(line), "Start") || strings.Contains(string(line), "Err") || strings.Contains(string(line), "Done") {
 			_ = <-c.hub.clients[*c.userIds].Head.singlechan // block
 		}
 	}
@@ -126,6 +126,25 @@ const (
 	ENDTRAININGSTART      = 6
 	ENDTRAININGSTOPNORMAL = 7
 	ENDTRAININGSTOPFAIL   = 8
+
+	// 10Gi ips substring
+	MATCHIPS = "192.168.100."
+
+	// init script in pods
+	INIT_IN_POD = "/usr/share/horovod/params_trans.sh"
+	EXEC_IN_POD = "/usr/share/horovod/start.py"
+
+	// POD pvc url
+	MOUNTPATH = "/usr/share/horovod"
+
+	// init script url
+	//INIT_FTP_URL = "http://172.18.29.81/ftp/script/init.py"
+	INIT_FTP_URL = "https://gitee.com/whoamiyuanren/script2035/raw/master/start.py"
+	//PARAMS_TRANS = "http://172.18.29.81/ftp/script/params_trans.sh"
+	PARAMS_TRANS = "https://gitee.com/whoamiyuanren/script2035/raw/master/params_trans.sh"
+
+	//images
+	IMAGE = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
 )
 
 var upgrader = websocket.Upgrader{
@@ -167,6 +186,39 @@ func set_gpu_rest(c *Client) {
 	// dont set the type
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuCapacity = string(capacity)
 	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuUsed = string(used)
+}
+
+func exec_init_program(c *Client, exec_pod_name string) {
+	base_cmd_string := "kubectl exec " +
+		exec_pod_name +
+		" -n " +
+		nameSpace +
+		" -it -- " +
+		"/bin/bash " + INIT_IN_POD + " \"" +
+		/*" --model_parameters=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.Params +*/
+		" --ip=" +
+		c.hub.clients[*c.userIds].Head.ips +
+		" --nodes=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) +
+		" --user_id=" +
+		strconv.Itoa(c.userIds.Uid) +
+		" --task_id=" +
+		strconv.Itoa(c.userIds.Tid) +
+		" --model_type=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
+		" --model_url=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.SelectedModelUrl +
+		" --framework=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.FrameworkType) +
+		" --selected_dataset=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset) +
+		"\""
+
+	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
+	if err := cmd.Run(); err != nil {
+		log.Println(err)
+	}
 }
 
 func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, nodeQuantity int, realPvcName *string) {
