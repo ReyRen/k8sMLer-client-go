@@ -10,14 +10,13 @@ import (
 	"log"
 )
 
-func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, cap string) string {
+func PvcReady(pvcs *apiv1.PersistentVolumeClaim,
+	pvcName string,
+	tmpString string,
+	labelName string,
+	cap string) string {
 
-	// sc name
-	scName := "web-nfs"
-	//scName := "nfs-sc"
-
-	// annotation key
-	//annKey := "volume.beta.kubernetes.io/storage-class"
+	storageclassName := STORAGECLASS
 
 	// assemble pvc name
 	pvcName = pvcName + "-pvc-" + tmpString
@@ -42,18 +41,22 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim, pvcName string, tmpString strin
 				Requests: resourceLimit,
 			},
 			VolumeName:       "", // binding to which PV
-			StorageClassName: &scName,
+			StorageClassName: &storageclassName,
 			VolumeMode:       nil, // by default is the raw block
 		},
 	}
 	return pvcName
 }
 
-func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, tmpString string, labelName string, gracePeriodSeconds *int64, caps string) string {
+func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface,
+	pvcName string,
+	tmpString string,
+	labelName string,
+	caps string) string {
+
 	var pvcs apiv1.PersistentVolumeClaim
 
-	realName := PvcReady(&pvcs, pvcName, tmpString, labelName, gracePeriodSeconds, caps)
-	fmt.Println("creating pvc...")
+	realName := PvcReady(&pvcs, pvcName, tmpString, labelName, caps)
 	resultPVC, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
 	if err != nil {
 		log.Fatalln("create the pvc err : ", err)
@@ -77,7 +80,6 @@ func Delete_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, lab
 
 	deletePolicy := metav1.DeletePropagationForeground
 	if pvcName != "" {
-		fmt.Println("delete pvc...")
 		if err := pvcClient.Delete(context.TODO(), pvcName, metav1.DeleteOptions{
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,
@@ -86,7 +88,6 @@ func Delete_pvc(pvcClient v1.PersistentVolumeClaimInterface, pvcName string, lab
 		}
 		fmt.Printf("deleted pvc %s\n", pvcName)
 	} else {
-		fmt.Println("delete pvcs...")
 		if err := pvcClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,

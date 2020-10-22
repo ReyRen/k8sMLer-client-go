@@ -69,7 +69,7 @@ func resourceOperator(c *Client,
 				c.hub.broadcast <- c
 			}
 
-			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
+			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, labelName, &gracePeriodSeconds)
@@ -99,7 +99,7 @@ func resourceOperator(c *Client,
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":
 			/*choose to use storageclass*/
-			_ = Create_pvc(pvcClient, kindName, tmpString, labelName, &gracePeriodSeconds, caps)
+			_ = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 		default:
 			log.Fatal("resource is required[-o], only support pod,service")
 		}
@@ -109,7 +109,6 @@ func resourceOperator(c *Client,
 		case "pod":
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
-				//Update_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr)
 				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr, labelName, &gracePeriodSeconds)
 				Delete_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, &gracePeriodSeconds)
 			}

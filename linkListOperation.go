@@ -15,7 +15,7 @@ type headNode struct {
 	sm         *sendMsg
 	rm         *recvMsg
 	logchan    chan *sendMsg
-	singlechan chan []byte
+	signalChan chan []byte
 	ips        string
 	next       *Node
 }
@@ -35,7 +35,7 @@ func NewSocketList(msg *msg) *SameIdsLinkList {
 		sm:         msg.sm,
 		rm:         msg.rm,
 		logchan:    make(chan *sendMsg),
-		singlechan: make(chan []byte),
+		signalChan: make(chan []byte),
 		ips:        "",
 		next:       nil,
 	}
@@ -124,7 +124,8 @@ func (head *SameIdsLinkList) linklistRun() {
 		case msgs := <-head.Head.logchan:
 			currentList := head.Head.next
 			for currentList != nil {
-				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type)) // sendlog cannot close or won't send to next client
+				// sendlog cannot close or won't send to next client
+				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
 				currentList = currentList.next
 			}
 		}

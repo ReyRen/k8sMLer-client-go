@@ -6,9 +6,7 @@ import (
 	"net/http"
 )
 
-var addr = flag.String("addr", "172.18.29.80:8066", "http service address")
-
-//var addr = flag.String("addr", ":8088", "http service address")
+var addr = flag.String("addr", websocketServer, "http service address")
 
 func main() {
 	flag.Parse()

@@ -11,8 +11,6 @@ import (
 )
 
 func ServiceReady(service *apiv1.Service, serviceName string, labelName string, gracePeriodSeconds *int64) string {
-	// assemble a pod name
-	//serviceName = serviceName + "-svc-" + tmpString
 
 	*service = apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +35,6 @@ func ServiceReady(service *apiv1.Service, serviceName string, labelName string, 
 				"app": labelName,
 			},
 		},
-		//Status:     apiv1.ServiceStatus{},
 	}
 
 	return serviceName
@@ -47,12 +44,10 @@ func Create_service(svcClient v1.ServiceInterface, serviceName string, labelName
 	var service apiv1.Service
 
 	realSvcName := ServiceReady(&service, serviceName, labelName, gracePeriodSeconds)
-	fmt.Println("creating service...")
-	result, err := svcClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+	_, err := svcClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {
 		log.Fatalln("create the service err : ", err)
 	}
-	fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
 	return realSvcName
 }
 
@@ -68,7 +63,6 @@ func List_service(svcClient v1.ServiceInterface, labelName string) {
 }
 
 func Delete_service(svcClient v1.ServiceInterface, serviceName string, gracePeriodSeconds *int64) {
-	fmt.Println("delete service...")
 	deletePolicy := metav1.DeletePropagationForeground
 	if err := svcClient.Delete(context.TODO(), serviceName, metav1.DeleteOptions{
 		GracePeriodSeconds: gracePeriodSeconds,
@@ -76,5 +70,4 @@ func Delete_service(svcClient v1.ServiceInterface, serviceName string, gracePeri
 	}); err != nil {
 		log.Println("delete svc err: ", err)
 	}
-	fmt.Printf("deleted service %s\n", serviceName)
 }

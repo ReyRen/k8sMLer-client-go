@@ -12,10 +12,9 @@ import (
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
+
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
-	// assemble a pod name
-	//podName = podName + "-pod-" + tmpString
 
 	// multus-cni for different interface in pods
 	multus := make(map[string]string)
@@ -27,13 +26,11 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 
 	// get the execute args
 	var args []string
-	master_tail := "/etc/init.d/ssh start > /dev/null; " + "python " + EXEC_IN_POD + ";tail -f /dev/null"
-	base_tail := "/etc/init.d/ssh start; wget -P " + MOUNTPATH + " " + INIT_FTP_URL + "; wget -P " + MOUNTPATH + " " + PARAMS_TRANS + ";tail -f /dev/null"
 	if currentI == totalI-1 {
 		// last one pod
-		args = []string{master_tail}
+		args = []string{MASTER_TAIL}
 	} else {
-		args = []string{base_tail}
+		args = []string{CHILD_TAIL}
 	}
 
 	// assemble a resource limit
@@ -61,11 +58,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 			},
 			Containers: []apiv1.Container{
 				{
-					Name: containName,
-					//Image: "horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6", // testing
-					Image:   IMAGE,
-					Command: []string{"/bin/sh", "-c"},
-					//Args:    []string{"python tensorflow_mnist.py", "tail -f /dev/null"},
+					Name:       containName,
+					Image:      IMAGE,
+					Command:    []string{"/bin/sh", "-c"},
 					Args:       args,
 					WorkingDir: "",
 					Ports:      []apiv1.ContainerPort{},
@@ -101,16 +96,22 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 	}
 }
 
-func Create_pod(podClient v1.PodInterface, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
+func Create_pod(podClient v1.PodInterface,
+	podName string,
+	tmpString string,
+	labelName string,
+	gpuQuantity int64,
+	gracePeriodSeconds *int64,
+	pvcName string,
+	currentI int,
+	totalI int) {
 	var pod apiv1.Pod
 
 	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI)
-	fmt.Println("creating pod...")
-	result, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
+	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
-		log.Fatalln("create the pod err : ", err)
+		log.Println("create the pod err : ", err)
 	}
-	fmt.Printf("Created pod %q.\n", result.GetObjectMeta().GetName())
 }
 
 func List_pod(podClient v1.PodInterface, labelName string) {
@@ -127,16 +128,13 @@ func List_pod(podClient v1.PodInterface, labelName string) {
 func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gracePeriodSeconds *int64) {
 	deletePolicy := metav1.DeletePropagationForeground
 	if podName != "" {
-		fmt.Println("delete pod...")
 		if err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,
 		}); err != nil {
 			log.Println("delete pod err:", err)
 		}
-		fmt.Printf("deleted pod %s\n", podName)
 	} else {
-		fmt.Println("delete pods...")
 		if err := podClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,
@@ -155,16 +153,12 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
 
 	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
-	//podCondition := podv1.Status.Conditions
 	/*
 		podCondition[0].Status:False
 		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.
 		podCondition[0].Reason:Unschedulable
 		podCondition[0].podPhase:Pending
 	*/
-	/*apiv1.ExecCommandParam
-	remotecommand.Executor()*/
-
 	return podv1.Status.Phase
 }
 

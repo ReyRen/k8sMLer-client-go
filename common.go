@@ -81,7 +81,7 @@ func LogMonitor(c *Client, rd io.Reader) {
 		c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 		c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
 		if strings.Contains(string(line), "Start") || strings.Contains(string(line), "Err") || strings.Contains(string(line), "Done") {
-			_ = <-c.hub.clients[*c.userIds].Head.singlechan // block
+			_ = <-c.hub.clients[*c.userIds].Head.signalChan // block
 		}
 	}
 }
@@ -92,6 +92,11 @@ func PraseTmpString(tmpString string) (string, string) {
 }
 
 const (
+	// ip and ports with end
+	socketServer = "10.1.20.97:8081"
+	// ip of mine
+	websocketServer = "172.18.29.80:8066"
+
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 	// Time allowed to read the next pong message from the peer.
@@ -103,10 +108,11 @@ const (
 
 	// define the default namespace RS located
 	nameSpace = "web"
+	// define storageclass name
+	STORAGECLASS = "web-nfs"
 
 	// statusCode to frontend
 	RECVSTART           = 10 // click start
-	RECVSTOP            = 11 // click stop
 	TRAININGSTART       = 12 // after rs ready and code running
 	TRAININGSTOPSUCCESS = 13 // success finished
 	TRAININGSTOPFAILED  = 14 // error finished
@@ -130,21 +136,36 @@ const (
 	// 10Gi ips substring
 	MATCHIPS = "192.168.100."
 
-	// init script in pods
-	INIT_IN_POD = "/usr/share/horovod/params_trans.sh"
-	EXEC_IN_POD = "/usr/share/horovod/start.py"
+	// transfor paramaters (workaround for ssh execute cmd cannot use >)
+	PARAMS_TRANS_SCRIPT = "params_trans.sh"
+	// init script
+	START_SCRIPT = "start.py"
 
 	// POD pvc url
-	MOUNTPATH = "/usr/share/horovod"
+	MOUNTPATH = "/usr/share/horovod/"
 
-	// init script url
-	//INIT_FTP_URL = "http://172.18.29.81/ftp/script/init.py"
-	INIT_FTP_URL = "https://gitee.com/whoamiyuanren/script2035/raw/master/start.py"
-	//PARAMS_TRANS = "http://172.18.29.81/ftp/script/params_trans.sh"
-	PARAMS_TRANS = "https://gitee.com/whoamiyuanren/script2035/raw/master/params_trans.sh"
+	// absoulute of two scripts
+	PARAMS_IN_POD = MOUNTPATH + PARAMS_TRANS_SCRIPT
+	START_IN_POD  = MOUNTPATH + START_SCRIPT
+
+	// base script URL
+	BASE_SCRIPT_URL = "http://172.18.29.81/ftp/script/"
+
+	// two scripts URL
+	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
+	START_URL             = BASE_SCRIPT_URL + START_SCRIPT
+	WGET_PARAMS_TRANS_URL = "wget -c -P " + MOUNTPATH + " " + PARAMS_TRANS_URL + ";"
+	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL + ";"
+
+	// create pods args
+	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null;"
+	END_TAIL    = ";tail -f /dev/null"
+	MASTER_TAIL = INIT_TAIL + " python " + START_IN_POD + END_TAIL
+	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
 
 	//images
 	IMAGE = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
+	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 )
 
 var upgrader = websocket.Upgrader{
@@ -194,9 +215,9 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		" -n " +
 		nameSpace +
 		" -it -- " +
-		"/bin/bash " + INIT_IN_POD + " \"" +
-		/*" --model_parameters=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.Params +*/
+		"/bin/bash " + PARAMS_IN_POD + " \"" +
+		"--model_parameters=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.Params +
 		" --ip=" +
 		c.hub.clients[*c.userIds].Head.ips +
 		" --nodes=" +
@@ -221,7 +242,11 @@ func exec_init_program(c *Client, exec_pod_name string) {
 	}
 }
 
-func log_back_to_frontend(c *Client, kubeconfig string, namespaceName string, nodeQuantity int, realPvcName *string) {
+func log_back_to_frontend(c *Client,
+	kubeconfig string,
+	namespaceName string,
+	nodeQuantity int,
+	realPvcName *string) {
 
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
@@ -263,7 +288,7 @@ func trimQuotes(s string) string {
 
 func clientSocket(c *Client, statusCode int) {
 	// create socket with end
-	conn, err := net.Dial("tcp", "10.1.20.97:8081")
+	conn, err := net.Dial("tcp", socketServer)
 	if err != nil {
 		fmt.Println("clientSocket err: ", err)
 		return

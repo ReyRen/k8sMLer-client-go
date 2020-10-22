@@ -123,18 +123,16 @@ func (c *Client) writePump() {
 					c.hub.broadcast <- c
 					//clientSocket(c, ENDTRAININGSTART)
 					// block
-					c.hub.clients[*c.userIds].Head.singlechan <- []byte("x")
+					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 				}
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				w.Write(sdmsg)
 			}
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
-				//log.Fatalln("websocket closed: ", err)
 				return
 			}
 		case _, ok := <-c.send:
-			//typeCode, _ := strconv.Atoi(string(msg))
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -151,7 +149,6 @@ func (c *Client) writePump() {
 
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
-				//log.Fatalln("websocket closed: ", err)
 				return
 			}
 		case <-ticker.C:
@@ -164,14 +161,12 @@ func (c *Client) writePump() {
 }
 
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	// conn, err := upgrader.Upgrade(w, r, nil)
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		// mute : websocket: the client is not using the websocket protocol: 'upgrade' token not found in 'Connection' header
-		//log.Printf("upgrade err: %v\n", err)
 		return
 	}
 	// initialize client, create memory for msg
@@ -213,17 +208,14 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
-	//fmt.Println(string(message))
-
 	jsonHandler(message, &rmtmp)
 
 	client.hub.register <- &msgs
 
 	set_gpu_rest(msgs.cltmp)
-	//fmt.Printf("%s is logged in userIds[%d, %d]\n", msgs.cltmp.addr, msgs.cltmp.userIds.Uid, msgs.cltmp.userIds.Tid)
+
 	client.hub.broadcast <- msgs.cltmp
 
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
-
 }
