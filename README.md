@@ -1,8 +1,11 @@
-# OBSOLETED README
-
 # k8sMLer-client-go
-Based on kubernetes/client-go API to talk with Kubernetes
-打造出一基于API的自定义集群操作工具
+**实现功能:**
+1. 使用kubernetes/client-go进行kubernetes集群资源控制
+2. 使用websocket作为与前端的交互
+3. 支持多任务和多用户的同时训练和页面刷新后，实时训练日志的正确重定向展示
+
+**设计架构:**
+![hub](https://github.com/ReyRen/k8sMLer-client-go/blob/master/Hub.png)
 
 **INSTALL:**
 

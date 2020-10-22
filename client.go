@@ -12,13 +12,12 @@ import (
 )
 
 type Client struct {
-	hub            *Hub
-	conn           *websocket.Conn
-	userIds        *Ids
-	send           chan []byte
-	sendLog        chan []byte
-	goroutineClose chan []byte
-	addr           string
+	hub     *Hub
+	conn    *websocket.Conn
+	userIds *Ids
+	send    chan []byte
+	sendLog chan []byte
+	addr    string
 }
 
 var kubeconfigName string
@@ -200,13 +199,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	msgs.sm = &smtmp
 
 	client := &Client{
-		hub:            hub,
-		conn:           conn,
-		userIds:        rmtmp.Content.IDs, // initialize is null
-		send:           make(chan []byte),
-		sendLog:        make(chan []byte),
-		goroutineClose: make(chan []byte),
-		addr:           conn.RemoteAddr().String(),
+		hub:     hub,
+		conn:    conn,
+		userIds: rmtmp.Content.IDs, // initialize is null
+		send:    make(chan []byte),
+		sendLog: make(chan []byte),
+		addr:    conn.RemoteAddr().String(),
 	}
 	// assemble client to once msg
 	msgs.cltmp = client
