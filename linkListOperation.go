@@ -68,7 +68,7 @@ func (list *SameIdsLinkList) Append(node *Node) {
 func (list *SameIdsLinkList) Remove(client *Client) error {
 	empty := list.isEmpty() // have node rather than only head
 	if empty {
-		return errors.New("This is an empty list")
+		return errors.New("this is an empty list")
 	}
 	head := list.Head // *headNode
 	if head.next.client == client {
@@ -118,11 +118,11 @@ func (list *SameIdsLinkList) PrintList() {
 	return
 }
 
-func (head *SameIdsLinkList) linklistRun() {
+func (list *SameIdsLinkList) linklistRun() {
 	for true {
 		select {
-		case msgs := <-head.Head.logchan:
-			currentList := head.Head.next
+		case msgs := <-list.Head.logchan:
+			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
 				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))

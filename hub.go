@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 )
 
@@ -47,7 +48,10 @@ func (h *Hub) run() {
 				currentList = currentList.next
 			}
 		case client := <-h.unregister:
-			h.clients[*client.userIds].Remove(client)
+			err := h.clients[*client.userIds].Remove(client)
+			if err != nil {
+				log.Println("map remove err:", err)
+			}
 			fmt.Printf("%s is logged out from userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
 		}
 	}

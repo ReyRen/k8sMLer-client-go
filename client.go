@@ -26,11 +26,14 @@ var kubeconfigName string
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
-		c.conn.Close()
+		err := c.conn.Close()
+		if err != nil {
+			log.Println("readPump conn close err: ", err)
+		}
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { _ = c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
 		_, message, err := c.conn.ReadMessage() // This is a block func, once ws closed, this would be get err
 		if err != nil {
@@ -49,7 +52,7 @@ func (c *Client) readPump() {
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					//handle socket with the frontend
-					//clientSocket(c, WAITINGRESOURCE)
+					clientSocket(c, WAITINGRESOURCE)
 					resourceOperator(c,
 						kubeconfigName,
 						"create",
@@ -82,16 +85,19 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		err := c.conn.Close()
+		if err != nil {
+			log.Println("writePump conn close err: ", err)
+		}
 	}()
 	for {
 		select {
 		case msg, ok := <-c.sendLog: // handle log
 			typeCode, _ := strconv.Atoi(string(msg))
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -107,36 +113,39 @@ func (c *Client) writePump() {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
-					//clientSocket(c, ENDTRAININGSTOPNORMAL)
+					clientSocket(c, ENDTRAININGSTOPNORMAL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
-					//clientSocket(c, ENDTRAININGSTOPFAIL)
+					clientSocket(c, ENDTRAININGSTOPFAIL)
 
 				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
 					c.hub.broadcast <- c
-					//clientSocket(c, ENDTRAININGSTART)
+					clientSocket(c, ENDTRAININGSTART)
 					// block
 					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 				}
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				w.Write(sdmsg)
+				_, err := w.Write(sdmsg)
+				if err != nil {
+					log.Println("sendlog chan write err: ", err)
+				}
 			}
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
 				return
 			}
 		case _, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -145,14 +154,17 @@ func (c *Client) writePump() {
 			}
 
 			sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm) // STATUSRESPOND or GPU
-			w.Write(sdmsg)
+			_, err = w.Write(sdmsg)
+			if err != nil {
+				log.Println("send chan write err: ", err)
+			}
 
 			if err := w.Close(); err != nil {
 				log.Println("websocket closed:", err)
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

@@ -122,9 +122,8 @@ const (
 	TRAININGLOGERR   = "Err\n"
 
 	// Type Code
-	STATUSRESPOND   = 1
-	RESOURCERESPOND = 2
-	LOGRESPOND      = 3
+	STATUSRESPOND = 1
+	LOGRESPOND    = 3
 
 	// Status code for end
 	WAITINGRESOURCE       = 4
