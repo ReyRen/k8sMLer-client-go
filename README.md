@@ -30,8 +30,10 @@ make run
 这里创建的storageclass是"web-nfs"的名字，请参考[StorageClass-creation](https://github.com/ReyRen/k8sMLer-client-go/blob/master/storage/README.md)提前创建
 并且更改代码中相应的命名
 
-因为涉及到传参到集群pod中进行分布式训练，所以会有两个脚本在`scripts/`目录中
+因为涉及到传参到集群pod中进行分布式训练，所以会有两个脚本在`scripts/`目录中, 如不需要请屏蔽
 
 请体检创建好名字为web的namespace, 或者更改common.go中相应的宏
 
 更改common.go中关于server IP的宏
+
+因项目需要使用到了intel的multus-cni作为pod中多虚拟网卡的CNI，如果使用请参考官方指南，否则请代码中屏蔽
