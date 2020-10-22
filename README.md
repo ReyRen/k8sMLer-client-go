@@ -8,7 +8,7 @@
 ![hub](https://github.com/ReyRen/k8sMLer-client-go/blob/master/Hub.jpg)
 
 **部署:**
-###### go version >= 1.14 (go module requre go version >= 1.12)
+###### go version >= 1.14 (go module require go version >= 1.12)
 设置代理，否则google官方源被墙掉了
 ```
 export GOPROXY=https://goproxy.io
@@ -31,3 +31,7 @@ make run
 并且更改代码中相应的命名
 
 因为涉及到传参到集群pod中进行分布式训练，所以会有两个脚本在`scripts/`目录中
+
+请体检创建好名字为web的namespace, 或者更改common.go中相应的宏
+
+更改common.go中关于server IP的宏
