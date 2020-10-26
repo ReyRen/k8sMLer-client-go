@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"flag"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
@@ -22,33 +20,10 @@ import (
 	"time"
 )
 
-func ParseArg(kubeconfig *string, operator *string, resource *string, namespaceName *string, kindName *string, labelName *string, gpuQuantity *int64, cap *string) {
-	if home := homedir.HomeDir(); home != "" { // HomeDir returns the home directory for the current user
-		flag.StringVar(kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional)absolute path to the kubeconfig file")
-	} else {
-		flag.StringVar(kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.StringVar(operator, "o", "list", "list,create,delete,log")
-	flag.StringVar(resource, "r", "", "service,pod,pvc") // pod, svc
-	flag.StringVar(namespaceName, "n", "", "namespaceName")
-	flag.StringVar(kindName, "k", "", "kindName[svcName, podName]")
-	flag.StringVar(labelName, "l", "", "labelName") // the label name is not required
-	flag.Int64Var(gpuQuantity, "g", int64(0), "gpu quantities[0,1,2..]")
-	flag.StringVar(cap, "c", "10Gi", "pvc volume capacity[10Gi,20Gi,30Gi,40Gi,50Gi]")
-	flag.Parse()
-
-	if *resource == "" {
-		log.Fatal("The resource is required[r=], only supports pod and service")
-	}
-	if *namespaceName == "" {
-		log.Fatal("The namespace is required[n=]")
-	}
-}
-
 func CreateClient(clientset **kubernetes.Clientset, kubeconfig *string) error {
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		log.Fatal("build config of client err: ", err)
+		Error.Printf("build config of client err: %s\n", err)
 		return err
 	}
 	*clientset, err = kubernetes.NewForConfig(config)
@@ -75,14 +50,15 @@ func LogMonitor(c *Client, rd io.Reader) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalln("read err: ", err)
+			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
-		fmt.Println(string(line))
-		if strings.Contains(string(line), "111Start111") || flag != 0 {
+		if strings.Contains(string(line), TRAINLOGDONE) || flag != 0 {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-			if strings.Contains(string(line), "111Start111") || strings.Contains(string(line), "111Err111") || strings.Contains(string(line), "111Done111") {
+			if strings.Contains(string(line), TRAINLOGDONE) ||
+				strings.Contains(string(line), TRAINLOGSTART) ||
+				strings.Contains(string(line), TRAINLOGERR) {
 				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block
 			}
 			flag = 1
@@ -124,8 +100,11 @@ const (
 	TRAININGSTOPFAILED  = 14 // error finished
 
 	TRAININGLOGDONE  = "111Done111\n"
+	TRAINLOGDONE     = "111Done111"
 	TRAININGLOGSTART = "111Start111\n"
+	TRAINLOGSTART    = "111Start111"
 	TRAININGLOGERR   = "111Err111\n"
+	TRAINLOGERR      = "111Err111"
 
 	// Type Code
 	STATUSRESPOND = 1
@@ -171,6 +150,7 @@ const (
 	//images
 	IMAGE = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
+
 )
 
 var upgrader = websocket.Upgrader{
@@ -181,12 +161,19 @@ var upgrader = websocket.Upgrader{
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
+
+	// log
+	Trace   *log.Logger // 记录所有日志
+	Info    *log.Logger // 重要的信息
+	Warning *log.Logger // 需要注意的信息
+	Error   *log.Logger // 非常严重的问题
+
 )
 
 func jsonHandler(data []byte, v interface{}) {
 	errJson := json.Unmarshal(data, v)
 	if errJson != nil {
-		log.Println("json err: ", errJson)
+		Error.Printf("json err: %s\n", errJson)
 	}
 }
 
@@ -195,7 +182,7 @@ func getKubeconfigName(kubeconfig *string) {
 		*kubeconfig = filepath.Join(home, ".kube", "config")
 	} else {
 		*kubeconfig = ""
-		fmt.Println("The kubeconfig is null")
+		Warning.Println("The kubeconfig is null")
 	}
 }
 
@@ -242,9 +229,8 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		"\""
 
 	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
-	//fmt.Println(cmd)
 	if err := cmd.Run(); err != nil {
-		log.Println(err)
+		Error.Printf("[%d, %d]: command run err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
 }
 
@@ -260,7 +246,7 @@ func log_back_to_frontend(c *Client,
 	var clientset *kubernetes.Clientset
 	err := CreateClient(&clientset, &kubeconfig)
 	if err != nil {
-		panic(err)
+		Error.Printf("[%d, %d]: CreateClient err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
 	// define resource
 	podClient := clientset.CoreV1().Pods(namespaceName)
@@ -275,7 +261,7 @@ func log_back_to_frontend(c *Client,
 	})
 	podLogs, err := result.Stream(context.TODO())
 	if err != nil {
-		log.Println("podLogs stream err : ", err)
+		Error.Println("[%d, %d]: podLogs err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
 	}
 	//return podLogs
@@ -296,7 +282,7 @@ func clientSocket(c *Client, statusCode int) {
 	// create socket with end
 	conn, err := net.Dial("tcp", socketServer)
 	if err != nil {
-		fmt.Println("clientSocket err: ", err)
+		Error.Printf("[%d, %d]: clientSocket err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
 	}
 	defer conn.Close()
@@ -307,6 +293,6 @@ func clientSocket(c *Client, statusCode int) {
 	socketmsg, _ := json.Marshal(clientmsg)
 	_, err = conn.Write(socketmsg)
 	if err != nil {
-		log.Println("socketclient send err:", err)
+		Error.Printf("[%d, %d]: clientSocket send err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
 }

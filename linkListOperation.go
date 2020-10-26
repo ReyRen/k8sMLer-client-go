@@ -101,11 +101,10 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 func (list *SameIdsLinkList) PrintList() {
 	empty := list.isEmpty()
 	if empty {
-		fmt.Println("This is an empty list")
+		Trace.Printf("This is an empty list\n")
 		return
 	}
 	current := list.Head.next
-	fmt.Println("The elements is:")
 	i := 0
 	for ; ; i++ {
 		if current.next == nil {

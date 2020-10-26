@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"github.com/sevlyar/go-daemon"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 var addr = flag.String("addr", websocketServer, "http service address")
@@ -45,6 +48,30 @@ func listen_main() {
 	})
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		Error.Println("ListenAndServe: ", err)
 	}
+}
+
+func init() {
+	file, err := os.OpenFile("k8sMLer.err",
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("Failed to open error log file:", err)
+	}
+
+	Trace = log.New(ioutil.Discard,
+		"TRACE: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Info = log.New(os.Stdout,
+		"INFO: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Warning = log.New(os.Stdout,
+		"WARNING: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Error = log.New(io.MultiWriter(file, os.Stderr),
+		"ERROR: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
 }

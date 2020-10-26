@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -33,12 +31,12 @@ func (h *Hub) run() {
 				go headList.linklistRun() // used for log control
 				headList.Append(newNode(msg.cltmp, nil))
 				h.clients[*msg.cltmp.userIds] = headList
-				fmt.Printf("userIds[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
+				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headList.PrintList()
 			} else {
 				headlist := h.clients[*msg.cltmp.userIds]
 				headlist.Append(newNode(msg.cltmp, nil))
-				fmt.Printf("userIds[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
+				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
 			}
 		case broadcastClient := <-h.broadcast: // only broadcast client msg(small)
@@ -50,9 +48,9 @@ func (h *Hub) run() {
 		case client := <-h.unregister:
 			err := h.clients[*client.userIds].Remove(client)
 			if err != nil {
-				log.Println("map remove err:", err)
+				Error.Printf("[%d, %d]: map remove err:%s\n", client.userIds.Uid, client.userIds.Tid, err)
 			}
-			fmt.Printf("%s is logged out from userIds[%d, %d]\n", client.addr, client.userIds.Uid, client.userIds.Tid)
+			Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		}
 	}
 }

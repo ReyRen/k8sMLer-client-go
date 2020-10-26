@@ -94,10 +94,12 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				Warning.Printf("[%d, %d]: handle log channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				Warning.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 				return
 			}
 
@@ -210,7 +212,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	_, message, err := client.conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			log.Printf("error: %v", err)
+			Error.Println("error: %v", err)
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))

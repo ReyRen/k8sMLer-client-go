@@ -110,7 +110,7 @@ func Create_pod(podClient v1.PodInterface,
 	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI)
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
-		log.Println("create the pod err : ", err)
+		Error.Println("create the pod err : ", err)
 	}
 }
 
@@ -118,7 +118,7 @@ func List_pod(podClient v1.PodInterface, labelName string) {
 	fmt.Println("list pod...")
 	list, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
 	if err != nil {
-		log.Fatalln("list pod err: ", err)
+		Error.Println("list pod err: ", err)
 	}
 	for _, s := range list.Items {
 		fmt.Printf(" * [%s] pod in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
