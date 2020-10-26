@@ -22,7 +22,7 @@ type recvMsgContent struct {
 	Command          string `json:"command"`
 	FrameworkType    int    `json:"frameworkType"`
 	Params           string `json:"params"`
-	SelectedDataset  int    `json:"selectedDataset"`
+	SelectedDataset  string `json:"selectedDataset"`
 }
 type Ids struct {
 	Uid int `json:"uid"`

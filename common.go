@@ -68,6 +68,7 @@ func GetRandomString(l int) string {
 
 func LogMonitor(c *Client, rd io.Reader) {
 	r := bufio.NewReader(rd)
+	flag := 0
 
 	for {
 		line, err := r.ReadBytes('\n')
@@ -77,11 +78,16 @@ func LogMonitor(c *Client, rd io.Reader) {
 			log.Fatalln("read err: ", err)
 		}
 		fmt.Println(string(line))
-		c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
-		c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
-		c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-		if strings.Contains(string(line), "Start") || strings.Contains(string(line), "Err") || strings.Contains(string(line), "Done") {
-			_ = <-c.hub.clients[*c.userIds].Head.signalChan // block
+		if strings.Contains(string(line), "111Start111") || flag != 0 {
+			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
+			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
+			if strings.Contains(string(line), "111Start111") || strings.Contains(string(line), "111Err111") || strings.Contains(string(line), "111Done111") {
+				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block
+			}
+			flag = 1
+		} else {
+			continue
 		}
 	}
 }
@@ -93,7 +99,7 @@ func PraseTmpString(tmpString string) (string, string) {
 
 const (
 	// ip and ports with end
-	socketServer = "10.1.20.97:8081"
+	socketServer = "172.18.29.81:8082"
 	// ip of mine
 	websocketServer = "172.18.29.80:8066"
 
@@ -117,9 +123,9 @@ const (
 	TRAININGSTOPSUCCESS = 13 // success finished
 	TRAININGSTOPFAILED  = 14 // error finished
 
-	TRAININGLOGDONE  = "Done\n"
-	TRAININGLOGSTART = "Start\n"
-	TRAININGLOGERR   = "Err\n"
+	TRAININGLOGDONE  = "111Done111\n"
+	TRAININGLOGSTART = "111Start111\n"
+	TRAININGLOGERR   = "111Err111\n"
 
 	// Type Code
 	STATUSRESPOND = 1
@@ -154,12 +160,12 @@ const (
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
 	START_URL             = BASE_SCRIPT_URL + START_SCRIPT
 	WGET_PARAMS_TRANS_URL = "wget -c -P " + MOUNTPATH + " " + PARAMS_TRANS_URL + ";"
-	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL + ";"
+	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL
 
 	// create pods args
 	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null;"
 	END_TAIL    = ";tail -f /dev/null"
-	MASTER_TAIL = INIT_TAIL + " python " + START_IN_POD + END_TAIL
+	MASTER_TAIL = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + ";python " + START_IN_POD + END_TAIL
 	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
 
 	//images
@@ -180,7 +186,7 @@ var (
 func jsonHandler(data []byte, v interface{}) {
 	errJson := json.Unmarshal(data, v)
 	if errJson != nil {
-		log.Fatalln("json err: ", errJson)
+		log.Println("json err: ", errJson)
 	}
 }
 
@@ -215,12 +221,12 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		nameSpace +
 		" -it -- " +
 		"/bin/bash " + PARAMS_IN_POD + " \"" +
-		"--model_parameters=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.Params +
-		" --ip=" +
+		"--ip=" +
 		c.hub.clients[*c.userIds].Head.ips +
 		" --nodes=" +
 		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) +
+		" --model_parameters=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.Params +
 		" --user_id=" +
 		strconv.Itoa(c.userIds.Uid) +
 		" --task_id=" +
@@ -232,10 +238,11 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		" --framework=" +
 		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.FrameworkType) +
 		" --selected_dataset=" +
-		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset) +
+		c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset +
 		"\""
 
 	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
+	//fmt.Println(cmd)
 	if err := cmd.Run(); err != nil {
 		log.Println(err)
 	}

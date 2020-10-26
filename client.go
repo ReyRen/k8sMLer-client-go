@@ -84,10 +84,7 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		err := c.conn.Close()
-		if err != nil {
-			log.Println("writePump conn close err: ", err)
-		}
+		_ = c.conn.Close()
 	}()
 	for {
 		select {

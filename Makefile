@@ -3,6 +3,8 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 BINARY_NAME=k8sMLer
+PID:=$(shell cat ./k8sMLer.pid)
+LOG_FILE=k8sMLer.log
 
 all: build
 build:
@@ -10,6 +12,8 @@ build:
 clean:
 	$(GOCLEAN)
 	rm -rf $(BINARY_NAME)
+	rm -rf $(LOG_FILE)
+	kill -9 $(PID)
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)
