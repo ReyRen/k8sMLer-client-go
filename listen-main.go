@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/sevlyar/go-daemon"
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -53,13 +51,13 @@ func listen_main() {
 }
 
 func init() {
-	file, err := os.OpenFile("k8sMLer.err",
+	/*file, err := os.OpenFile("k8sMLer.err",
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open error log file:", err)
-	}
+	}*/
 
-	Trace = log.New(ioutil.Discard,
+	Trace = log.New(os.Stdout,
 		"TRACE: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -71,7 +69,10 @@ func init() {
 		"WARNING: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	Error = log.New(io.MultiWriter(file, os.Stderr),
+	/*Error = log.New(io.MultiWriter(file, os.Stderr),
+	"ERROR: ",
+	log.Ldate|log.Ltime|log.Lshortfile)*/
+	Error = log.New(os.Stdout,
 		"ERROR: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 }

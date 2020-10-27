@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"log"
 )
 
 func ServiceReady(service *apiv1.Service, serviceName string, labelName string, gracePeriodSeconds *int64) string {
@@ -46,19 +44,19 @@ func Create_service(svcClient v1.ServiceInterface, serviceName string, labelName
 	realSvcName := ServiceReady(&service, serviceName, labelName, gracePeriodSeconds)
 	_, err := svcClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {
-		log.Fatalln("create the service err : ", err)
+		Error.Println("create the service err : ", err)
 	}
 	return realSvcName
 }
 
 func List_service(svcClient v1.ServiceInterface, labelName string) {
-	fmt.Println("list service...")
+	Trace.Println("list service...")
 	list, err := svcClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelName})
 	if err != nil {
-		log.Fatalln("list svc err: ", err)
+		Error.Println("list svc err: ", err)
 	}
 	for _, s := range list.Items {
-		fmt.Printf(" * [%s] svc in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
+		Trace.Printf(" * [%s] svc in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
 	}
 }
 
@@ -68,6 +66,6 @@ func Delete_service(svcClient v1.ServiceInterface, serviceName string, gracePeri
 		GracePeriodSeconds: gracePeriodSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}); err != nil {
-		log.Println("delete svc err: ", err)
+		Error.Println("delete svc err: ", err)
 	}
 }

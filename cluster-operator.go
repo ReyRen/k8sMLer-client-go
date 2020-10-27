@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"log"
 	"strconv"
 	"time"
 )
@@ -21,26 +19,13 @@ func resourceOperator(c *Client,
 	nodeQuantity int,
 	realPvcName *string) { // realPvcName used to get created random rs group name
 
-	//gpuQuantity int64) {
-	/*var kubeconfig, operator, resource, namespaceName, kindName, labelName, caps string
-	var gpuQuantity int64
-
-	ParseArg(&kubeconfig,
-		&operator,
-		&resource,
-		&namespaceName,
-		&kindName,
-		&labelName,
-		&gpuQuantity,
-		&caps,
-	)*/
-
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
 	// createk8s-client
 	var clientset *kubernetes.Clientset
 	err := CreateClient(&clientset, &kubeconfig)
 	if err != nil {
+		Error.Printf("[%d, %d]:createClient err: %s")
 		panic(err)
 	}
 
@@ -49,7 +34,6 @@ func resourceOperator(c *Client,
 	podClient := clientset.CoreV1().Pods(namespaceName)
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
 	/* choose to use the StoragClass*/
-	//pvClient := clientset.CoreV1().PersistentVolumes()
 
 	// delete graceful
 	gracePeriodSeconds := int64(0) // delete immediately
@@ -58,7 +42,7 @@ func resourceOperator(c *Client,
 
 	switch operator {
 	case "create":
-		fmt.Println("create operation...")
+		Trace.Printf("[%d, %d]:create operation\n", c.userIds.Uid, c.userIds.Tid)
 		switch resource {
 		case "pod":
 
@@ -101,10 +85,10 @@ func resourceOperator(c *Client,
 			/*choose to use storageclass*/
 			_ = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 		default:
-			log.Fatal("resource is required[-o], only support pod,service")
+			Error.Println("resource is required[-o], only support pod,service")
 		}
 	case "delete":
-		fmt.Println("delete operation...")
+		Trace.Printf("[%d, %d]:delete operation\n", c.userIds.Uid, c.userIds.Tid)
 		switch resource {
 		case "pod":
 			endStr, startStr := PraseTmpString(*realPvcName)
@@ -118,11 +102,11 @@ func resourceOperator(c *Client,
 		case "pvc":
 			Delete_pvc(pvcClient, kindName, labelName, &gracePeriodSeconds)
 		default:
-			log.Fatal("resource is required[-o], only support pod,service")
+			Error.Println("resource is required[-o], only support pod,service")
 		}
 	case "log":
 		endStr, startStr := PraseTmpString(*realPvcName)
-		fmt.Println("get pods log...")
+		Trace.Printf("[%d, %d]:get pods log\n", c.userIds.Uid, c.userIds.Tid)
 		result := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
 			Container:  "",
 			Follow:     true,
@@ -131,12 +115,12 @@ func resourceOperator(c *Client,
 		})
 		podLogs, err := result.Stream(context.TODO())
 		if err != nil {
-			log.Fatalln("podLogs stream err : ", err)
+			Error.Println("podLogs stream err : ", err)
 		}
 		defer podLogs.Close()
 		//LogMonitor(podLogs)
 	default:
-		fmt.Println("list operation...")
+		Trace.Printf("[%d, %d]:list operation\n", c.userIds.Uid, c.userIds.Tid)
 		switch resource {
 		case "pod":
 			List_pod(podClient, labelName)
@@ -145,7 +129,7 @@ func resourceOperator(c *Client,
 		case "pvc":
 			List_pvc(pvcClient, labelName)
 		default:
-			log.Fatal("resource is required[-o], only support pod,service")
+			Error.Println("resource is required[-o], only support pod,service")
 		}
 	}
 }

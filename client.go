@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -27,7 +26,7 @@ func (c *Client) readPump() {
 		c.hub.unregister <- c
 		err := c.conn.Close()
 		if err != nil {
-			log.Println("readPump conn close err: ", err)
+			Error.Printf("[%d, %d]: readPump conn close err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -37,7 +36,7 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage() // This is a block func, once ws closed, this would be get err
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				Error.Printf("[%d, %d]: readMessage error: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			}
 			//flush websites and close website would caused ReadMessage err and trigger defer func
 			return
@@ -94,12 +93,12 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				Warning.Printf("[%d, %d]: handle log channel error\n", c.userIds.Uid, c.userIds.Tid)
+				Error.Printf("[%d, %d]: handle log channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				Warning.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
+				Error.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 				return
 			}
 
@@ -132,11 +131,11 @@ func (c *Client) writePump() {
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				_, err := w.Write(sdmsg)
 				if err != nil {
-					log.Println("sendlog chan write err: ", err)
+					Error.Printf("[%d, %d]: sendlog chan write err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 				}
 			}
 			if err := w.Close(); err != nil {
-				log.Println("websocket closed:", err)
+				Error.Printf("[%d, %d]: websocket closed err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 				return
 			}
 		case _, ok := <-c.send:
@@ -154,11 +153,11 @@ func (c *Client) writePump() {
 			sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm) // STATUSRESPOND or GPU
 			_, err = w.Write(sdmsg)
 			if err != nil {
-				log.Println("send chan write err: ", err)
+				Error.Printf("[%d, %d]: send chan write err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			}
 
 			if err := w.Close(); err != nil {
-				log.Println("websocket closed:", err)
+				Error.Printf("[%d, %d]: websocket closed error: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 				return
 			}
 		case <-ticker.C:
@@ -212,7 +211,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	_, message, err := client.conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			Error.Println("error: %v", err)
+			Error.Printf("[%d, %d]: handle log channel error: %s\n", client.userIds.Uid, client.userIds.Tid, err)
 		}
 	}
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))

@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"log"
 	"strings"
 )
 
@@ -121,7 +120,7 @@ func List_pod(podClient v1.PodInterface, labelName string) {
 		Error.Println("list pod err: ", err)
 	}
 	for _, s := range list.Items {
-		fmt.Printf(" * [%s] pod in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
+		Trace.Printf(" * [%s] pod in [%s] with [%v] label\n", s.Name, s.Namespace, s.Labels)
 	}
 }
 
@@ -132,7 +131,7 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 			GracePeriodSeconds: gracePeriodSeconds,
 			PropagationPolicy:  &deletePolicy,
 		}); err != nil {
-			log.Println("delete pod err:", err)
+			Error.Println("delete pod err:", err)
 		}
 	} else {
 		if err := podClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
@@ -144,9 +143,9 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 			FieldSelector: "",
 			Watch:         true,
 		}); err != nil {
-			log.Fatalln("delete pods err:", err)
+			Error.Println("delete pods err:", err)
 		}
-		fmt.Printf("delete all pods under label: %s\n", labelName)
+		Trace.Printf("delete all pods under label: %s\n", labelName)
 	}
 }
 

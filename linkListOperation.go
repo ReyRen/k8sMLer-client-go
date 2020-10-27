@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 )
 
@@ -110,10 +109,10 @@ func (list *SameIdsLinkList) PrintList() {
 		if current.next == nil {
 			break
 		}
-		fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
+		Trace.Printf("Client%d value:%v\n", i+1, current.client.addr)
 		current = current.next
 	}
-	fmt.Printf("Client%d value:%v\n", i+1, current.client.addr)
+	Trace.Printf("Client%d value:%v\n", i+1, current.client.addr)
 	return
 }
 

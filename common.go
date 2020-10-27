@@ -52,7 +52,7 @@ func LogMonitor(c *Client, rd io.Reader) {
 		} else if err != nil {
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
-		if strings.Contains(string(line), TRAINLOGDONE) || flag != 0 {
+		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
