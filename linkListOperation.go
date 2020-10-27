@@ -75,8 +75,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		if client.send != nil {
 			close(client.send)
 		}
+		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		client.addr = ""
-		//client.goroutineClose <- []byte("1")
 		return nil
 	} else {
 		current := head.next
@@ -86,8 +86,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 				if client.send != nil {
 					close(client.send)
 				}
+				Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 				client.addr = ""
-				//client.goroutineClose <- []byte("1")
 				return nil
 			}
 			current = current.next

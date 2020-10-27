@@ -63,6 +63,7 @@ func LogMonitor(c *Client, rd io.Reader) {
 			}
 			flag = 1
 		} else {
+			Trace.Printf("[%d, %d]: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 			continue
 		}
 	}

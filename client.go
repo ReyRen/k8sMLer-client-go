@@ -63,6 +63,13 @@ func (c *Client) readPump() {
 						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
+
+					if c.hub.clients[*c.userIds].Head.sm.Content.StatusCode == TRAININGSTOPSUCCESS {
+						clientSocket(c, ENDTRAININGSTOPNORMAL)
+					} else {
+						clientSocket(c, ENDTRAININGSTOPFAIL)
+					}
+
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",

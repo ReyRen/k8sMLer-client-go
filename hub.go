@@ -50,7 +50,6 @@ func (h *Hub) run() {
 			if err != nil {
 				Error.Printf("[%d, %d]: map remove err:%s\n", client.userIds.Uid, client.userIds.Tid, err)
 			}
-			Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		}
 	}
 }
