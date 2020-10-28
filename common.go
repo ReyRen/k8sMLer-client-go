@@ -41,10 +41,10 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(c *Client, rd io.Reader) {
+func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 	r := bufio.NewReader(rd)
 	flag := 0
-
+	endStr, startStr := PraseTmpString(*realPvcName)
 	for {
 		line, err := r.ReadBytes('\n')
 		if err == io.EOF {
@@ -53,6 +53,9 @@ func LogMonitor(c *Client, rd io.Reader) {
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
+			if strings.Contains(string(line), TRAINLOGSTART) {
+				exec_init_program(c, startStr+strconv.Itoa(gpus-1)+"-pod-"+endStr)
+			}
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
@@ -63,7 +66,12 @@ func LogMonitor(c *Client, rd io.Reader) {
 			}
 			flag = 1
 		} else {
-			Trace.Printf("[%d, %d]: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
+			if strings.Contains(string(line), "Connection timed out") {
+				c.hub.clients[*c.userIds].Head.sm.Type = RSRESPOND
+				//c.hub.clients[*c.userIds].Head.sm.Content.Log = "FTP: Connection timed out"
+				c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
+			}
+			Trace.Printf("[%d, %d]: %s", c.userIds.Uid, c.userIds.Tid, string(line))
 			continue
 		}
 	}
@@ -109,6 +117,7 @@ const (
 
 	// Type Code
 	STATUSRESPOND = 1
+	RSRESPOND     = 2
 	LOGRESPOND    = 3
 
 	// Status code for end
@@ -258,7 +267,7 @@ func log_back_to_frontend(c *Client,
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
-		Timestamps: true, // timestamps
+		Timestamps: false, // timestamps
 	})
 	podLogs, err := result.Stream(context.TODO())
 	if err != nil {
@@ -267,7 +276,7 @@ func log_back_to_frontend(c *Client,
 	}
 	//return podLogs
 	defer podLogs.Close()
-	LogMonitor(c, podLogs)
+	LogMonitor(c, podLogs, nodeQuantity, realPvcName)
 }
 
 func trimQuotes(s string) string {

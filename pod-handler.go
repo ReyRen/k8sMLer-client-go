@@ -111,6 +111,7 @@ func Create_pod(podClient v1.PodInterface,
 	if err != nil {
 		Error.Println("create the pod err : ", err)
 	}
+	Trace.Printf("created %s\n", podName)
 }
 
 func List_pod(podClient v1.PodInterface, labelName string) {

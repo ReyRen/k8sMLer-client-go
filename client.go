@@ -23,8 +23,11 @@ var kubeconfigName string
 
 func (c *Client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
-		err := c.conn.Close()
+		err := c.hub.clients[*c.userIds].Remove(c)
+		if err != nil {
+			Error.Printf("[%d, %d]: map remove err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
+		}
+		err = c.conn.Close()
 		if err != nil {
 			Error.Printf("[%d, %d]: readPump conn close err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
@@ -107,6 +110,12 @@ func (c *Client) writePump() {
 			if err != nil {
 				Error.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 				return
+			}
+
+			if typeCode == RSRESPOND {
+				//logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
+				c.hub.clients[*c.userIds].Head.sm.Type = RSRESPOND
+				c.hub.broadcast <- c
 			}
 
 			if typeCode == LOGRESPOND {

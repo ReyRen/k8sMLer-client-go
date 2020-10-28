@@ -75,7 +75,7 @@ func resourceOperator(c *Client,
 					}
 				}
 			}
-			exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
+			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
 			log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)

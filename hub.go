@@ -45,11 +45,6 @@ func (h *Hub) run() {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
 				currentList = currentList.next
 			}
-		case client := <-h.unregister:
-			err := h.clients[*client.userIds].Remove(client)
-			if err != nil {
-				Error.Printf("[%d, %d]: map remove err:%s\n", client.userIds.Uid, client.userIds.Tid, err)
-			}
 		}
 	}
 }

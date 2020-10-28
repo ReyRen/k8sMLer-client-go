@@ -59,7 +59,7 @@ func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface,
 	if err != nil {
 		Error.Println("create the pvc err : ", err)
 	}
-	Trace.Printf("Created persistentvolumeclaim %q.\n", resultPVC.GetObjectMeta().GetName())
+	Trace.Printf("created %s\n", resultPVC.GetObjectMeta().GetName())
 	return realName
 }
 

@@ -46,6 +46,7 @@ func Create_service(svcClient v1.ServiceInterface, serviceName string, labelName
 	if err != nil {
 		Error.Println("create the service err : ", err)
 	}
+	Trace.Printf("created %s\n", serviceName)
 	return realSvcName
 }
 
