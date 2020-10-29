@@ -59,10 +59,8 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-			if strings.Contains(string(line), TRAINLOGDONE) ||
-				strings.Contains(string(line), TRAINLOGSTART) ||
-				strings.Contains(string(line), TRAINLOGERR) {
-				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block
+			if strings.Contains(string(line), TRAINLOGSTART) {
+				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block for tons of msg following Start, then start can't receive
 			}
 			flag = 1
 		} else {
@@ -108,12 +106,9 @@ const (
 	TRAININGSTOPSUCCESS = 13 // success finished
 	TRAININGSTOPFAILED  = 14 // error finished
 
-	TRAININGLOGDONE  = "111Done111\n"
-	TRAINLOGDONE     = "111Done111"
-	TRAININGLOGSTART = "111Start111\n"
-	TRAINLOGSTART    = "111Start111"
-	TRAININGLOGERR   = "111Err111\n"
-	TRAINLOGERR      = "111Err111"
+	TRAINLOGDONE  = "111Done111"
+	TRAINLOGSTART = "111Start111"
+	TRAINLOGERR   = "111Err111"
 
 	// Type Code
 	STATUSRESPOND = 1

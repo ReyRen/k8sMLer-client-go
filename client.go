@@ -143,21 +143,19 @@ func (c *Client) writePump() {
 			if typeCode == LOGRESPOND {
 
 				logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
-
-				if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGDONE {
+				if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGDONE) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
 					clientSocket(c, ENDTRAININGSTOPNORMAL)
 
-				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGERR {
-
+				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGERR) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
 					clientSocket(c, ENDTRAININGSTOPFAIL)
 
-				} else if logStatusMsg[len(logStatusMsg)-1] == TRAININGLOGSTART {
+				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGSTART) {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
@@ -258,11 +256,14 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	client.hub.register <- &msgs
 	set_gpu_rest(msgs.cltmp)
-	msgs.cltmp.sendGpuMsg()
-	/*_ = client.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	w, _ := client.conn.NextWriter(websocket.TextMessage)*/
 
-	//client.hub.broadcast <- msgs.cltmp
+	/*
+		not use  client.hub.broadcast <- msgs.cltmp for broadcast
+		because send channel blocked after flash flush(first got new and then exit old)
+		so, execute by themself and not broadcast.
+		broadcast msg only log msg
+	*/
+	msgs.cltmp.sendGpuMsg()
 
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
