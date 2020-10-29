@@ -89,6 +89,28 @@ func (c *Client) readPump() {
 	}
 }
 
+func (c *Client) sendGpuMsg() {
+	/*defer func() {
+		_ = c.conn.Close()
+	}()*/
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	w, err := c.conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		Error.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
+		return
+	}
+	sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+	_, err = w.Write(sdmsg)
+	if err != nil {
+		Error.Printf("[%d, %d]: sendGpuMsg write err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+	}
+
+	if err := w.Close(); err != nil {
+		Error.Printf("[%d, %d]: websocket closed error: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+		return
+	}
+}
+
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -235,10 +257,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	jsonHandler(message, &rmtmp)
 
 	client.hub.register <- &msgs
-
 	set_gpu_rest(msgs.cltmp)
+	msgs.cltmp.sendGpuMsg()
+	/*_ = client.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	w, _ := client.conn.NextWriter(websocket.TextMessage)*/
 
-	client.hub.broadcast <- msgs.cltmp
+	//client.hub.broadcast <- msgs.cltmp
 
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
