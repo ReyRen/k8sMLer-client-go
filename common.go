@@ -62,6 +62,9 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 			if strings.Contains(string(line), TRAINLOGSTART) {
 				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block for tons of msg following Start, then start can't receive
 			}
+			if strings.Contains(string(line), TRAINLOGERR) || strings.Contains(string(line), TRAINLOGDONE) {
+				return // don't receive following output
+			}
 			flag = 1
 		} else {
 			if strings.Contains(string(line), "Connection timed out") {

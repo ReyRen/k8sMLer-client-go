@@ -146,21 +146,21 @@ func (c *Client) writePump() {
 				if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGDONE) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
-					c.hub.broadcast <- c
 					clientSocket(c, ENDTRAININGSTOPNORMAL)
+					c.hub.broadcast <- c
 
 				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGERR) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
-					c.hub.broadcast <- c
 					clientSocket(c, ENDTRAININGSTOPFAIL)
+					c.hub.broadcast <- c
 
 				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGSTART) {
 
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
-					c.hub.broadcast <- c
 					clientSocket(c, ENDTRAININGSTART)
+					c.hub.broadcast <- c
 					// block
 					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 				}
@@ -261,7 +261,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		not use  client.hub.broadcast <- msgs.cltmp for broadcast
 		because send channel blocked after flash flush(first got new and then exit old)
 		so, execute by themself and not broadcast.
-		broadcast msg only log msg
+		broadcast msg only log msg                       c
 	*/
 	msgs.cltmp.sendGpuMsg()
 
