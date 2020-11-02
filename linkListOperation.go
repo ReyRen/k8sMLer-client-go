@@ -65,6 +65,9 @@ func (list *SameIdsLinkList) Append(node *Node) {
 
 // delete
 func (list *SameIdsLinkList) Remove(client *Client) error {
+	unregistarGuard.Lock()
+	defer unregistarGuard.Unlock()
+
 	empty := list.isEmpty() // have node rather than only head
 	if empty {
 		return errors.New("this is an empty list")

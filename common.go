@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -167,6 +168,9 @@ var upgrader = websocket.Upgrader{
 }
 
 var (
+	// lock
+	unregistarGuard sync.Mutex
+
 	newline = []byte{'\n'}
 	space   = []byte{' '}
 
