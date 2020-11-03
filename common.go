@@ -46,6 +46,7 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 	r := bufio.NewReader(rd)
 	flag := 0
 	endStr, startStr := PraseTmpString(*realPvcName)
+
 	for {
 		line, err := r.ReadBytes('\n')
 		if err == io.EOF {
@@ -188,6 +189,8 @@ const (
 	IMAGE = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
+	// ftp log
+	FTPSERVER = "172.18.29.81:21"
 )
 
 var upgrader = websocket.Upgrader{
@@ -299,13 +302,26 @@ func log_back_to_frontend(c *Client,
 		Previous:   false,
 		Timestamps: false, // timestamps
 	})
+	// used for ftp log upload
+	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+		Container:  "",
+		Follow:     true,
+		Previous:   false,
+		Timestamps: false, // timestamps
+	})
 	podLogs, err := result.Stream(context.TODO())
 	if err != nil {
 		Error.Println("[%d, %d]: podLogs err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
 	}
+	podLogs2, err := result2.Stream(context.TODO())
+	if err != nil {
+		Error.Println("[%d, %d]: podLogs2 err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+		return
+	}
 	//return podLogs
 	defer podLogs.Close()
+	go ftpUploader(c, podLogs2)
 	LogMonitor(c, podLogs, nodeQuantity, realPvcName)
 }
 
