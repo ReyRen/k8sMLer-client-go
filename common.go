@@ -61,14 +61,39 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-			if strings.Contains(string(line), TRAINLOGSTART) ||
-				strings.Contains(string(line), TRAINLOGDONE) ||
-				strings.Contains(string(line), TRAINLOGERR) {
+
+			if strings.Contains(string(line), TRAINLOGSTART) {
+				clientSocket(c, ENDTRAININGSTART)
+			} else if strings.Contains(string(line), TRAINLOGERR) {
+				clientSocket(c, ENDTRAININGSTOPFAIL)
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				return
+			} else if strings.Contains(string(line), TRAINLOGDONE) {
+				clientSocket(c, ENDTRAININGSTOPNORMAL)
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				return
+			}
+			/*if strings.Contains(string(line), TRAINLOGSTART) {
 				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block for tons of msg following Start, then start can't receive
-			}
-			if strings.Contains(string(line), TRAINLOGERR) || strings.Contains(string(line), TRAINLOGDONE) {
-				return // don't receive following output
-			}
+			}*/
 			flag = 1
 		} else {
 			if strings.Contains(string(line), "Connection timed out") {

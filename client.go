@@ -96,16 +96,10 @@ func (c *Client) sendGpuMsg() {
 		Error.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
 	}
-	/*
-		multiple tab switch (one uid with multiple tid) and training switch before get 111Start111 msg
-		would get stuck of background tab task
-	*/
-	if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGDONE) ||
-		strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) ||
-		strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
+	/*if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) {
 		c.hub.clients[*c.userIds].Head.sm.Type = 0
 		c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
-	}
+	}*/
 	sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 	_, err = w.Write(sdmsg)
 	if err != nil {
@@ -152,26 +146,21 @@ func (c *Client) writePump() {
 				if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGDONE) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
-					clientSocket(c, ENDTRAININGSTOPNORMAL)
 					c.hub.broadcast <- c
 					// block
-					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
-					clientSocket(c, ENDTRAININGSTOPFAIL)
 					c.hub.broadcast <- c
 					// block
-					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
-					clientSocket(c, ENDTRAININGSTART)
 					c.hub.broadcast <- c
 					// block
-					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
+					//c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 				}
 				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 				_, err := w.Write(sdmsg)
