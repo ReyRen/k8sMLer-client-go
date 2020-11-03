@@ -90,14 +90,21 @@ func (c *Client) readPump() {
 }
 
 func (c *Client) sendGpuMsg() {
-	/*defer func() {
-		_ = c.conn.Close()
-	}()*/
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	w, err := c.conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		Error.Printf("[%d, %d]: handle log nextWriter error:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
+	}
+	/*
+		multiple tab switch (one uid with multiple tid) and training switch before get 111Start111 msg
+		would get stuck of background tab task
+	*/
+	if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGDONE) ||
+		strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) ||
+		strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
+		c.hub.clients[*c.userIds].Head.sm.Type = 0
+		c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 	}
 	sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
 	_, err = w.Write(sdmsg)
@@ -141,22 +148,24 @@ func (c *Client) writePump() {
 			}
 
 			if typeCode == LOGRESPOND {
-
-				logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
-				if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGDONE) {
+				//logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
+				if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGDONE) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					clientSocket(c, ENDTRAININGSTOPNORMAL)
 					c.hub.broadcast <- c
+					// block
+					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 
-				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGERR) {
+				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					clientSocket(c, ENDTRAININGSTOPFAIL)
 					c.hub.broadcast <- c
+					// block
+					c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
 
-				} else if strings.Contains(logStatusMsg[len(logStatusMsg)-1], TRAINLOGSTART) {
-
+				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
 					clientSocket(c, ENDTRAININGSTART)

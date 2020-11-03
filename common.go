@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
@@ -53,6 +54,7 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 		} else if err != nil {
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
+		fmt.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
 				exec_init_program(c, startStr+strconv.Itoa(gpus-1)+"-pod-"+endStr)
@@ -60,7 +62,9 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
 			c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
-			if strings.Contains(string(line), TRAINLOGSTART) {
+			if strings.Contains(string(line), TRAINLOGSTART) ||
+				strings.Contains(string(line), TRAINLOGDONE) ||
+				strings.Contains(string(line), TRAINLOGERR) {
 				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block for tons of msg following Start, then start can't receive
 			}
 			if strings.Contains(string(line), TRAINLOGERR) || strings.Contains(string(line), TRAINLOGDONE) {

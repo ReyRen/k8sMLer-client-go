@@ -78,6 +78,9 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		if client.send != nil {
 			close(client.send)
 		}
+		if client.sendLog != nil {
+			close(client.sendLog)
+		}
 		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		client.addr = ""
 		return nil
@@ -88,6 +91,9 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 				current.next = current.next.next
 				if client.send != nil {
 					close(client.send)
+				}
+				if client.sendLog != nil {
+					close(client.sendLog)
 				}
 				Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 				client.addr = ""
@@ -126,7 +132,9 @@ func (list *SameIdsLinkList) linklistRun() {
 			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
-				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				if currentList.client.sendLog != nil {
+					currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				}
 				currentList = currentList.next
 			}
 		}

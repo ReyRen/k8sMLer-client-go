@@ -35,6 +35,7 @@ func (h *Hub) run() {
 				headList.PrintList()
 			} else {
 				headlist := h.clients[*msg.cltmp.userIds]
+				go headlist.linklistRun()
 				headlist.Append(newNode(msg.cltmp, nil))
 				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
