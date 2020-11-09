@@ -264,7 +264,9 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		" --model_type=" +
 		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
 		" --model_url=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.SelectedModelUrl +
+		c.hub.clients[*c.userIds].Head.rm.Content.OriginalModelUrl +
+		" --model_url_con=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.ContinuousModelUrl +
 		" --framework=" +
 		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.FrameworkType) +
 		" --selected_dataset=" +
