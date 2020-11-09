@@ -4,12 +4,21 @@ import (
 	"github.com/dutchcoders/goftp"
 	"io"
 	"strconv"
+	"time"
 )
 
 func ftpUploader(c *Client, r io.Reader) {
 
 	dirPath := "user/" + strconv.Itoa(c.userIds.Uid) + "/" + strconv.Itoa(c.userIds.Tid) + "/log/"
-	fileName := strconv.Itoa(c.userIds.Uid) + "_" + strconv.Itoa(c.userIds.Tid) + "_log.txt"
+
+	timestamp := time.Now().Unix()
+	tm := time.Unix(timestamp, 0)
+	timeStamp := tm.Format("20060102030405")
+
+	fileName := strconv.Itoa(c.userIds.Uid) +
+		"_" + strconv.Itoa(c.userIds.Tid) +
+		"_" + timeStamp +
+		"_log.txt"
 
 	var err error
 	var ftp *goftp.FTP

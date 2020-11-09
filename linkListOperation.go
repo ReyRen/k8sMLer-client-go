@@ -75,12 +75,6 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	head := list.Head // *headNode
 	if head.next.client == client {
 		head.next = head.next.next
-		if client.send != nil {
-			close(client.send)
-		}
-		if client.sendLog != nil {
-			close(client.sendLog)
-		}
 		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		client.addr = ""
 		return nil
@@ -89,12 +83,6 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		for current.next != nil {
 			if current.next.client == client {
 				current.next = current.next.next
-				if client.send != nil {
-					close(client.send)
-				}
-				if client.sendLog != nil {
-					close(client.sendLog)
-				}
 				Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 				client.addr = ""
 				return nil

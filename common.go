@@ -171,7 +171,7 @@ const (
 	START_IN_POD  = MOUNTPATH + START_SCRIPT
 
 	// base script URL
-	BASE_SCRIPT_URL = "http://172.18.29.81/ftp/script/"
+	BASE_SCRIPT_URL = "http://192.168.100.1:8008/ftp/script/"
 
 	// two scripts URL
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
@@ -190,7 +190,7 @@ const (
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
 	// ftp log
-	FTPSERVER = "172.18.29.81:21"
+	FTPSERVER = "172.18.29.80:21"
 )
 
 var upgrader = websocket.Upgrader{
