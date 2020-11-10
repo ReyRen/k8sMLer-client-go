@@ -200,7 +200,7 @@ var upgrader = websocket.Upgrader{
 
 var (
 	// lock
-	unregistarGuard sync.Mutex
+	lock sync.Mutex
 
 	newline = []byte{'\n'}
 	space   = []byte{' '}

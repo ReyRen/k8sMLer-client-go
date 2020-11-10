@@ -65,8 +65,6 @@ func (list *SameIdsLinkList) Append(node *Node) {
 
 // delete
 func (list *SameIdsLinkList) Remove(client *Client) error {
-	unregistarGuard.Lock()
-	defer unregistarGuard.Unlock()
 
 	empty := list.isEmpty() // have node rather than only head
 	if empty {
@@ -129,6 +127,7 @@ func (list *SameIdsLinkList) linklistRun() {
 	for true {
 		select {
 		case msgs := <-list.Head.logchan:
+			lock.Lock()
 			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
@@ -137,6 +136,7 @@ func (list *SameIdsLinkList) linklistRun() {
 				}
 				currentList = currentList.next
 			}
+			lock.Unlock()
 		}
 	}
 }
