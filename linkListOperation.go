@@ -127,7 +127,7 @@ func (list *SameIdsLinkList) linklistRun() {
 	for true {
 		select {
 		case msgs := <-list.Head.logchan:
-			lock.Lock()
+			//lock.Lock()
 			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
@@ -136,7 +136,7 @@ func (list *SameIdsLinkList) linklistRun() {
 				}
 				currentList = currentList.next
 			}
-			lock.Unlock()
+			//lock.Unlock()
 		}
 	}
 }

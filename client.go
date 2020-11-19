@@ -23,13 +23,13 @@ var kubeconfigName string
 
 func (c *Client) readPump() {
 	defer func() {
-		err := c.hub.clients[*c.userIds].Remove(c)
-		if err != nil {
-			Error.Printf("[%d, %d]: map remove err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
-		}
-		err = c.conn.Close()
+		err := c.conn.Close()
 		if err != nil {
 			Error.Printf("[%d, %d]: readPump conn close err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+		}
+		err = c.hub.clients[*c.userIds].Remove(c)
+		if err != nil {
+			Error.Printf("[%d, %d]: map remove err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -126,7 +126,7 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				Error.Printf("[%d, %d]: handle log channel error\n", c.userIds.Uid, c.userIds.Tid)
+				Error.Printf("[%d, %d]: c.sendLog channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -147,12 +147,14 @@ func (c *Client) writePump() {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
+					break
 					// block
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
 					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
+					break
 					// block
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) {
@@ -177,6 +179,7 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				Error.Printf("[%d, %d]: c.send channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)

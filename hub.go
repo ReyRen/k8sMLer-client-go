@@ -41,13 +41,13 @@ func (h *Hub) run() {
 				headlist.PrintList()
 			}
 		case broadcastClient := <-h.broadcast: // only broadcast client msg(small)
-			lock.Lock()
+			//lock.Lock()
 			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
 			for currentList != nil {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
 				currentList = currentList.next
 			}
-			lock.Unlock()
+			//lock.Unlock()
 		}
 	}
 }
