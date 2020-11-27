@@ -163,11 +163,12 @@ func (c *Client) writePump() {
 					c.hub.broadcast <- c
 					// block
 					//c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
-				}
-				sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
-				_, err := w.Write(sdmsg)
-				if err != nil {
-					Error.Printf("[%d, %d]: sendlog chan write err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+				} else {
+					sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm)
+					_, err := w.Write(sdmsg)
+					if err != nil {
+						Error.Printf("[%d, %d]: sendlog chan write err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+					}
 				}
 			}
 			if err := w.Close(); err != nil {

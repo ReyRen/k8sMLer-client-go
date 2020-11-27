@@ -73,10 +73,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	head := list.Head // *headNode
 	if head.next.client == client {
 		head.next = head.next.next
-		if client.send != nil {
+		if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
 			close(client.send)
-		}
-		if client.sendLog != nil {
 			close(client.sendLog)
 		}
 		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
@@ -87,10 +85,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		for current.next != nil {
 			if current.next.client == client {
 				current.next = current.next.next
-				if client.send != nil {
+				if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
 					close(client.send)
-				}
-				if client.sendLog != nil {
 					close(client.sendLog)
 				}
 				Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
@@ -131,8 +127,9 @@ func (list *SameIdsLinkList) linklistRun() {
 			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
-				if currentList.client.sendLog != nil {
-					currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+				if msgs.Content.Log == TRAINLOGERR {
+					close(currentList.client.sendLog)
 				}
 				currentList = currentList.next
 			}

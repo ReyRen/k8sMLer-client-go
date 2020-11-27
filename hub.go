@@ -28,15 +28,15 @@ func (h *Hub) run() {
 			if h.clients[*msg.cltmp.userIds] == nil {
 				// not exist [uid,tid] key
 				headList := NewSocketList(msg)
-				go headList.linklistRun() // used for log control
 				headList.Append(newNode(msg.cltmp, nil))
 				h.clients[*msg.cltmp.userIds] = headList
+				go headList.linklistRun() // used for log control
 				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headList.PrintList()
 			} else {
 				headlist := h.clients[*msg.cltmp.userIds]
-				go headlist.linklistRun()
 				headlist.Append(newNode(msg.cltmp, nil))
+				go headlist.linklistRun()
 				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
 			}
@@ -45,6 +45,9 @@ func (h *Hub) run() {
 			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
 			for currentList != nil {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
+				if broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Content.StatusCode == TRAININGSTOPFAILED {
+					close(currentList.client.send)
+				}
 				currentList = currentList.next
 			}
 			//lock.Unlock()

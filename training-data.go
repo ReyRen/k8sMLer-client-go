@@ -22,6 +22,7 @@ type recvMsgContent struct {
 	ModelType          int    `json:"modelType"`
 	Command            string `json:"command"`
 	FrameworkType      int    `json:"frameworkType"`
+	ToolBoxName        string `json:"toolBoxName"`
 	Params             string `json:"params"`
 	SelectedDataset    string `json:"selectedDataset"`
 }
