@@ -32,8 +32,11 @@ type Ids struct {
 }
 
 type sendMsg struct {
-	Type    int             `json:"type"`
-	Content *sendMsgContent `json:"content"`
+	Type              int             `json:"type"`
+	Content           *sendMsgContent `json:"content"`
+	NodesListerName   string          `json:"nodesListerName"`
+	NodesListerLabel  string          `json:"nodesListerLabel"`
+	NodesListerStatus string          `json:"nodesListerStatus"`
 }
 type sendMsgContent struct {
 	Log          string             `json:"log"`

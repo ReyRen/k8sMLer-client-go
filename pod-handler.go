@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int) {
+func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int, imageName string) {
 
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
@@ -58,7 +58,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 			Containers: []apiv1.Container{
 				{
 					Name:       containName,
-					Image:      IMAGE,
+					Image:      imageName,
 					Command:    []string{"/bin/sh", "-c"},
 					Args:       args,
 					WorkingDir: "",
@@ -103,10 +103,11 @@ func Create_pod(podClient v1.PodInterface,
 	gracePeriodSeconds *int64,
 	pvcName string,
 	currentI int,
-	totalI int) {
+	totalI int,
+	imageName string) {
 	var pod apiv1.Pod
 
-	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI)
+	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI, imageName)
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
 		Error.Println("create the pod err : ", err)

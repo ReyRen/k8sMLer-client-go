@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -186,7 +187,8 @@ const (
 	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
 
 	//images
-	IMAGE = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
+	IMAGE           = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
+	IMAGE_MMDECTION = "horovod:mmdection"
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
 	// ftp log
@@ -229,19 +231,64 @@ func getKubeconfigName(kubeconfig *string) {
 	}
 }
 
-func set_gpu_rest(c *Client) {
-	var capacity []byte
+func get_node_info(c *Client) {
+	/*var capacity []byte
 	var used []byte
 
 	capacityResult := exec.Command("/bin/bash", "-c", `kubectl describe nodes  |  tr -d '\000' | sed -n -e '/^Name/,/Roles/p' -e '/^Capacity/,/Allocatable/p' -e '/^Allocated resources/,/Events/p' | grep -e Name  -e  nvidia.com  | perl -pe 's/\n//'  |  perl -pe 's/Name:/\n/g' | sed 's/nvidia.com\/gpu:\?//g'  | sed '1s/^/Node Available(GPUs)  Used(GPUs)/' | sed 's/$/0 0 0/'  | awk '{print $1, $2, $3}'  | column -t | awk '{sum += $2};END {print sum}'`)
 	usedResult := exec.Command("/bin/bash", "-c", `kubectl describe nodes  |  tr -d '\000' | sed -n -e '/^Name/,/Roles/p' -e '/^Capacity/,/Allocatable/p' -e '/^Allocated resources/,/Events/p' | grep -e Name  -e  nvidia.com  | perl -pe 's/\n//'  |  perl -pe 's/Name:/\n/g' | sed 's/nvidia.com\/gpu:\?//g'  | sed '1s/^/Node Available(GPUs)  Used(GPUs)/' | sed 's/$/0 0 0/'  | awk '{print $1, $2, $3}'  | column -t | awk '{sum += $3};END {print sum}'`)
 	capacity, _ = capacityResult.Output()
-	used, _ = usedResult.Output()
+	used, _ = usedResult.Output()*/
 
 	// assemble send data
 	// dont set the type
-	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuCapacity = string(capacity)
-	c.hub.clients[*c.userIds].Head.sm.Content.GpuInfo.GpuUsed = string(used)
+
+	getKubeconfigName(&kubeconfigName) // fill up into the kubeconfig
+
+	// create k8s-client
+	var clientset *kubernetes.Clientset
+	err := CreateClient(&clientset, &kubeconfigName)
+	if err != nil {
+		Error.Printf("[%d, %d]: CreateClient err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+	}
+
+	//var list *apiv1.NodeList
+	list, _ := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+		TypeMeta:      metav1.TypeMeta{},
+		LabelSelector: "accelerator",
+	})
+	nodeList := list.Items
+
+	var nodeLabels string
+	var nodeNames string
+	var nodeStatus string
+
+	for _, node := range nodeList {
+		nodeStatusTmp := node.Status.Conditions
+		for _, readyType := range nodeStatusTmp {
+			if readyType.Type == apiv1.NodeReady {
+				if readyType.Status == apiv1.ConditionTrue {
+					nodeStatus += "online"
+					nodeStatus += ","
+				} else if readyType.Status == apiv1.ConditionFalse {
+					nodeStatus += "offline"
+					nodeStatus += ","
+				} else {
+					nodeStatus += "offline"
+					nodeStatus += ","
+				}
+			}
+		}
+
+		tmpLabel := node.GetLabels()
+		nodeLabels += tmpLabel["accelerator"]
+		nodeLabels += ","
+		nodeNames += node.GetName()
+		nodeNames += ","
+	}
+	c.hub.clients[*c.userIds].Head.sm.NodesListerName = nodeNames
+	c.hub.clients[*c.userIds].Head.sm.NodesListerLabel = nodeLabels
+	c.hub.clients[*c.userIds].Head.sm.NodesListerStatus = nodeStatus
 }
 
 func exec_init_program(c *Client, exec_pod_name string) {

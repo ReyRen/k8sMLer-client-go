@@ -57,7 +57,14 @@ func resourceOperator(c *Client,
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeQuantity; i++ {
 				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, labelName, &gracePeriodSeconds)
-				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, nodeQuantity)
+
+				var imageName string
+				if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdection" {
+					imageName = IMAGE_MMDECTION
+				} else {
+					imageName = IMAGE
+				}
+				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, nodeQuantity, imageName)
 				for true {
 					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {

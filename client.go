@@ -257,7 +257,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	jsonHandler(message, &rmtmp)
 
 	client.hub.register <- &msgs
-	set_gpu_rest(msgs.cltmp)
+	get_node_info(msgs.cltmp)
 
 	/*
 		not use  client.hub.broadcast <- msgs.cltmp for broadcast
