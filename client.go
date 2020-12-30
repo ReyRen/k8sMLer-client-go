@@ -68,7 +68,8 @@ func (c *Client) readPump() {
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
-					if c.hub.clients[*c.userIds].Head.sm.Content.StatusCode == TRAININGSTOPSUCCESS {
+					//if c.hub.clients[*c.userIds].Head.sm.Content.StatusCode == TRAININGSTOPSUCCESS {
+					if c.hub.clients[*c.userIds].Head.sm.Type == TRAININGSTOPSUCCESS {
 						clientSocket(c, ENDTRAININGSTOPNORMAL)
 					} else {
 						clientSocket(c, ENDTRAININGSTOPFAIL)
@@ -145,22 +146,25 @@ func (c *Client) writePump() {
 			if typeCode == LOGRESPOND {
 				//logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
 				if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGDONE) {
-					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS
+					/*c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPSUCCESS*/
+					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTOPSUCCESS
 					c.hub.broadcast <- c
 					break
 					// block
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
-					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED
+					/*c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED*/
+					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTOPFAILED
 					c.hub.broadcast <- c
 					break
 					// block
 
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGSTART) {
-					c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART
+					/*c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTART*/
+					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTART
 					c.hub.broadcast <- c
 					// block
 					//c.hub.clients[*c.userIds].Head.signalChan <- []byte("?")
@@ -224,7 +228,6 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	var smtmp sendMsg
 	var recvMsgContenttmp recvMsgContent
 	var sendMsgConetenttmp sendMsgContent
-	var sendMsgContentGputmp sendMsgContentGpu
 	var resourceInfotmp resourceInfo
 	var selectNodeSlice []selectNodes
 
@@ -232,7 +235,6 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	rmtmp.Content = &recvMsgContenttmp
 	rmtmp.Content.SelectedNodes = &selectNodeSlice
 	smtmp.Content = &sendMsgConetenttmp
-	smtmp.Content.GpuInfo = &sendMsgContentGputmp
 	smtmp.Content.ResourceInfo = &resourceInfotmp
 	msgs.rm = &rmtmp
 	msgs.sm = &smtmp

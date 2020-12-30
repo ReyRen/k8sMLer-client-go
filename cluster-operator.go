@@ -51,8 +51,9 @@ func resourceOperator(c *Client,
 		case "pod":
 
 			// respond to frontend get start msg
-			c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
-			c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTART
+			/*c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
+			c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = RECVSTART*/
+			c.hub.clients[*c.userIds].Head.sm.Type = RECVSTART
 			if c.addr != "" {
 				c.hub.broadcast <- c
 			}
@@ -60,7 +61,8 @@ func resourceOperator(c *Client,
 			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeNum; i++ {
-				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, labelName, &gracePeriodSeconds)
+				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr,
+					labelName, &gracePeriodSeconds)
 
 				var imageName string
 				if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdection" {
@@ -68,7 +70,9 @@ func resourceOperator(c *Client,
 				} else {
 					imageName = IMAGE
 				}
-				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, gpuNum, imageName, (*selectNodes)[i].NodeNames)
+				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString,
+					labelName, int64(1), &gracePeriodSeconds, *realPvcName, i,
+					gpuNum, imageName, (*selectNodes)[i].NodeNames)
 				for true {
 					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {
@@ -89,7 +93,9 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
-			log_back_to_frontend(c, kubeconfigName, nameSpace, nodeNum, &c.hub.clients[*c.userIds].Head.rm.realPvcName, nodeNum, gpuNum)
+			log_back_to_frontend(c, kubeconfigName, nameSpace, nodeNum,
+				&c.hub.clients[*c.userIds].Head.rm.realPvcName,
+				nodeNum, gpuNum)
 		case "service":
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":

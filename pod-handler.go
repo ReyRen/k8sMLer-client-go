@@ -10,7 +10,9 @@ import (
 	"strings"
 )
 
-func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName string, gpuQuantity int64, gracePeriodSeconds *int64, pvcName string, currentI int, totalI int, imageName string, bindName string) {
+func PodReady(pods *apiv1.Pod, podName string, tmpString string,
+	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
+	pvcName string, currentI int, totalI int, imageName string, bindName string) {
 
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
@@ -77,9 +79,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string, labelName strin
 					},
 					TerminationMessagePolicy: apiv1.TerminationMessageFallbackToLogsOnError,
 					/*
-						TerminationMessageFallbackToLogsOnError will read the most recent contents of the container logs
-						for the container status message when the container exits with an error and the
-						terminationMessagePath has no contents.
+						TerminationMessageFallbackToLogsOnError will read the most recent contents
+						of the container logs for the container status message when the container
+						exits with an error and the termination Message Path has no contents.
 					*/
 				},
 			},
@@ -109,7 +111,8 @@ func Create_pod(podClient v1.PodInterface,
 	bindName string) {
 	var pod apiv1.Pod
 
-	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds, pvcName, currentI, totalI, imageName, bindName)
+	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
+		pvcName, currentI, totalI, imageName, bindName)
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
 		Error.Println("create the pod err : ", err)

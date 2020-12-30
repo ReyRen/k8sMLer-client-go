@@ -73,7 +73,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	head := list.Head // *headNode
 	if head.next.client == client {
 		head.next = head.next.next
-		if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
+		//if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
+		if client.hub.clients[*client.userIds].Head.sm.Type != TRAININGSTOPFAILED {
 			close(client.send)
 			close(client.sendLog)
 		}
@@ -85,7 +86,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		for current.next != nil {
 			if current.next.client == client {
 				current.next = current.next.next
-				if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
+				//if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
+				if client.hub.clients[*client.userIds].Head.sm.Type != TRAININGSTOPFAILED {
 					close(client.send)
 					close(client.sendLog)
 				}

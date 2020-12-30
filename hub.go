@@ -45,7 +45,7 @@ func (h *Hub) run() {
 			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
 			for currentList != nil {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
-				if broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Content.StatusCode == TRAININGSTOPFAILED {
+				if broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type == TRAININGSTOPFAILED {
 					close(currentList.client.send)
 				}
 				currentList = currentList.next

@@ -8,6 +8,14 @@ type msg struct {
 	cltmp     *Client
 }
 
+// clientsocket send msg
+type clientsocketmsg struct {
+	Uid      int `json:"uid"`
+	Tid      int `json:"tid"`
+	StatusId int `json:"statusId"`
+}
+
+//--------------------------------------------------接受消息--------------------------------------------------
 type recvMsg struct {
 	Type        int             `json:"type"`
 	Content     *recvMsgContent `json:"content"`
@@ -35,30 +43,18 @@ type Ids struct {
 	Tid int `json:"tid"`
 }
 
+//--------------------------------------------------发送消息--------------------------------------------------
 type sendMsg struct {
-	Type              int             `json:"type"`
-	Content           *sendMsgContent `json:"content"`
-	NodesListerName   string          `json:"nodesListerName"`
-	NodesListerLabel  string          `json:"nodesListerLabel"`
-	NodesListerStatus string          `json:"nodesListerStatus"`
+	Type    int             `json:"type"`
+	Content *sendMsgContent `json:"content"`
 }
 type sendMsgContent struct {
-	Log          string             `json:"log"`
-	StatusCode   int                `json:"statusCode"`
-	GpuInfo      *sendMsgContentGpu `json:"gpuInfo"`
-	ResourceInfo *resourceInfo      `json:"resourceInfo"`
-}
-type sendMsgContentGpu struct {
-	GpuCapacity string `json:"gpuCapacity"`
-	GpuUsed     string `json:"gpuUsed"`
+	Log string `json:"log"`
+	//StatusCode   					int 		     			`json:"statusCode"`
+	ResourceInfo *resourceInfo `json:"resourceInfo"`
 }
 type resourceInfo struct {
-	PodPhase string `json:"podPhase"`
-}
-
-// clientsocket send msg
-type clientsocketmsg struct {
-	Uid      int `json:"uid"`
-	Tid      int `json:"tid"`
-	StatusId int `json:"statusId"`
+	NodesListerName   string `json:"nodesListerName"`
+	NodesListerLabel  string `json:"nodesListerLabel"`
+	NodesListerStatus string `json:"nodesListerStatus"`
 }

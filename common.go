@@ -94,7 +94,8 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string, nodeNum 
 				return
 			}
 			/*if strings.Contains(string(line), TRAINLOGSTART) {
-				_ = <-c.hub.clients[*c.userIds].Head.signalChan // block for tons of msg following Start, then start can't receive
+				_ = <-c.hub.clients[*c.userIds].Head.signalChan
+				// block for tons of msg following Start, then start can't receive
 			}*/
 			flag = 1
 		} else {
@@ -135,19 +136,19 @@ const (
 	STORAGECLASS = "web-nfs"
 
 	// statusCode to frontend
-	RECVSTART           = 10 // click start
-	TRAININGSTART       = 12 // after rs ready and code running
-	TRAININGSTOPSUCCESS = 13 // success finished
-	TRAININGSTOPFAILED  = 14 // error finished
+	RECVSTART           = 10 // 训练指令已发送
+	TRAININGSTART       = 12 // 开始训练
+	TRAININGSTOPSUCCESS = 13 // 训练正常结束
+	TRAININGSTOPFAILED  = 14 // 训练异常结束
 
 	TRAINLOGDONE  = "111Done111"
 	TRAINLOGSTART = "111Start111"
 	TRAINLOGERR   = "111Err111"
 
 	// Type Code
-	STATUSRESPOND = 1
-	RSRESPOND     = 2
-	LOGRESPOND    = 3
+	//STATUSRESPOND = 1
+	RSRESPOND  = 2 // ftp超时重连
+	LOGRESPOND = 3 // 打印日志
 
 	// Status code for end
 	WAITINGRESOURCE       = 4
@@ -286,9 +287,9 @@ func get_node_info(c *Client) {
 		nodeNames += node.GetName()
 		nodeNames += ","
 	}
-	c.hub.clients[*c.userIds].Head.sm.NodesListerName = nodeNames
-	c.hub.clients[*c.userIds].Head.sm.NodesListerLabel = nodeLabels
-	c.hub.clients[*c.userIds].Head.sm.NodesListerStatus = nodeStatus
+	c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.NodesListerName = nodeNames
+	c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.NodesListerLabel = nodeLabels
+	c.hub.clients[*c.userIds].Head.sm.Content.ResourceInfo.NodesListerStatus = nodeStatus
 }
 
 func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int) {
