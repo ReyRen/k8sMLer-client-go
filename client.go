@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"strconv"
@@ -45,7 +46,7 @@ func (c *Client) readPump() {
 			return
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		//fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
+		fmt.Printf("userIds[%d, %d] sent messages: %s\n", c.userIds.Uid, c.userIds.Tid, message)
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
 		go func() {
 			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
@@ -225,9 +226,11 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	var sendMsgConetenttmp sendMsgContent
 	var sendMsgContentGputmp sendMsgContentGpu
 	var resourceInfotmp resourceInfo
+	var selectNodeSlice []selectNodes
 
 	recvMsgContenttmp.IDs = &ids
 	rmtmp.Content = &recvMsgContenttmp
+	rmtmp.Content.SelectedNodes = &selectNodeSlice
 	smtmp.Content = &sendMsgConetenttmp
 	smtmp.Content.GpuInfo = &sendMsgContentGputmp
 	smtmp.Content.ResourceInfo = &resourceInfotmp

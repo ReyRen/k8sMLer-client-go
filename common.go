@@ -43,7 +43,7 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
+func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string, nodeNum int, gpuNum int) {
 	r := bufio.NewReader(rd)
 	flag := 0
 	endStr, startStr := PraseTmpString(*realPvcName)
@@ -58,7 +58,7 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string) {
 		//fmt.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
-				exec_init_program(c, startStr+strconv.Itoa(gpus-1)+"-pod-"+endStr)
+				exec_init_program(c, startStr+strconv.Itoa(gpus-1)+"-pod-"+endStr, nodeNum, gpuNum)
 			}
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
@@ -291,7 +291,7 @@ func get_node_info(c *Client) {
 	c.hub.clients[*c.userIds].Head.sm.NodesListerStatus = nodeStatus
 }
 
-func exec_init_program(c *Client, exec_pod_name string) {
+func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int) {
 	base_cmd_string := "kubectl exec " +
 		exec_pod_name +
 		" -n " +
@@ -301,7 +301,9 @@ func exec_init_program(c *Client, exec_pod_name string) {
 		"--ip=" +
 		c.hub.clients[*c.userIds].Head.ips +
 		" --nodes=" +
-		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) +
+		strconv.Itoa(nodeNum) +
+		" --mp_size=" +
+		strconv.Itoa(gpuNum) +
 		" --model_parameters=" +
 		c.hub.clients[*c.userIds].Head.rm.Content.Params +
 		" --user_id=" +
@@ -330,7 +332,9 @@ func log_back_to_frontend(c *Client,
 	kubeconfig string,
 	namespaceName string,
 	nodeQuantity int,
-	realPvcName *string) {
+	realPvcName *string,
+	nodeNum int,
+	gpuNum int) {
 
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
@@ -371,7 +375,7 @@ func log_back_to_frontend(c *Client,
 	//return podLogs
 	defer podLogs.Close()
 	go ftpUploader(c, podLogs2)
-	LogMonitor(c, podLogs, nodeQuantity, realPvcName)
+	LogMonitor(c, podLogs, nodeQuantity, realPvcName, nodeNum, gpuNum)
 }
 
 func trimQuotes(s string) string {
@@ -399,5 +403,13 @@ func clientSocket(c *Client, statusCode int) {
 	_, err = conn.Write(socketmsg)
 	if err != nil {
 		Error.Printf("[%d, %d]: clientSocket send err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+	}
+}
+
+func trimRsNum(selectNodes *[]selectNodes, nodeNum *int, gpuNum *int) {
+	*nodeNum = len(*selectNodes)
+	for _, v := range *selectNodes {
+		*gpuNum = v.GPUNum
+		break
 	}
 }

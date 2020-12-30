@@ -16,8 +16,12 @@ func resourceOperator(c *Client,
 	kindName string,
 	labelName string,
 	caps string,
-	nodeQuantity int,
+	selectNodes *[]selectNodes,
 	realPvcName *string) { // realPvcName used to get created random rs group name
+
+	var nodeNum int
+	var gpuNum int // for each node
+	trimRsNum(selectNodes, &nodeNum, &gpuNum)
 
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
@@ -55,7 +59,7 @@ func resourceOperator(c *Client,
 
 			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
-			for i := 0; i < nodeQuantity; i++ {
+			for i := 0; i < nodeNum; i++ {
 				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, labelName, &gracePeriodSeconds)
 
 				var imageName string
@@ -64,7 +68,7 @@ func resourceOperator(c *Client,
 				} else {
 					imageName = IMAGE
 				}
-				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, nodeQuantity, imageName)
+				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString, labelName, int64(1), &gracePeriodSeconds, *realPvcName, i, gpuNum, imageName, (*selectNodes)[i].NodeNames)
 				for true {
 					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {
@@ -85,7 +89,7 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
-			log_back_to_frontend(c, kubeconfigName, nameSpace, c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes, &c.hub.clients[*c.userIds].Head.rm.realPvcName)
+			log_back_to_frontend(c, kubeconfigName, nameSpace, nodeNum, &c.hub.clients[*c.userIds].Head.rm.realPvcName, nodeNum, gpuNum)
 		case "service":
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":
@@ -99,7 +103,7 @@ func resourceOperator(c *Client,
 		switch resource {
 		case "pod":
 			endStr, startStr := PraseTmpString(*realPvcName)
-			for i := 0; i < nodeQuantity; i++ {
+			for i := 0; i < nodeNum; i++ {
 				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr, labelName, &gracePeriodSeconds)
 				Delete_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, &gracePeriodSeconds)
 			}
@@ -114,7 +118,7 @@ func resourceOperator(c *Client,
 	case "log":
 		endStr, startStr := PraseTmpString(*realPvcName)
 		Trace.Printf("[%d, %d]:get pods log\n", c.userIds.Uid, c.userIds.Tid)
-		result := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+		result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
 			Container:  "",
 			Follow:     true,
 			Previous:   false,

@@ -14,17 +14,21 @@ type recvMsg struct {
 	realPvcName string
 }
 type recvMsgContent struct {
-	IDs                *Ids   `json:"ids"`
-	OriginalModelUrl   string `json:"originalModelUrl"`
-	ContinuousModelUrl string `json:"continuousModelUrl"`
-	ResourceType       string `json:"resourceType"`
-	SelectedNodes      int    `json:"selectedNodes"`
-	ModelType          int    `json:"modelType"`
-	Command            string `json:"command"`
-	FrameworkType      int    `json:"frameworkType"`
-	ToolBoxName        string `json:"toolBoxName"`
-	Params             string `json:"params"`
-	SelectedDataset    string `json:"selectedDataset"`
+	IDs                *Ids           `json:"ids"`
+	OriginalModelUrl   string         `json:"originalModelUrl"`
+	ContinuousModelUrl string         `json:"continuousModelUrl"`
+	ResourceType       string         `json:"resourceType"`
+	SelectedNodes      *[]selectNodes `json:"selectedNodes"`
+	ModelType          int            `json:"modelType"`
+	Command            string         `json:"command"`
+	FrameworkType      int            `json:"frameworkType"`
+	ToolBoxName        string         `json:"toolBoxName"`
+	Params             string         `json:"params"`
+	SelectedDataset    string         `json:"selectedDataset"`
+}
+type selectNodes struct {
+	NodeNames string `json:"nodeName"`
+	GPUNum    int    `json:"GPUNum"`
 }
 type Ids struct {
 	Uid int `json:"uid"`
