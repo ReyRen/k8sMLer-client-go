@@ -72,15 +72,19 @@ func resourceOperator(c *Client,
 				}
 				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString,
 					labelName, int64(1), &gracePeriodSeconds, *realPvcName, i,
-					gpuNum, imageName, (*selectNodes)[i].NodeNames)
+					nodeNum, imageName, (*selectNodes)[i].NodeNames)
 				for true {
-					podPhase := Get_pod_status(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+					time.Sleep(time.Second * 3)
+					podPhase := Get_pod_status(&(c.hub.clients[*c.userIds].Head.sm.Type), podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 					if podPhase == apiv1.PodRunning {
+						//c.hub.clients[*c.userIds].Head.rm.Type = 10
 						ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
 						c.hub.clients[*c.userIds].Head.ips += ip + ","
 						break
 					} else if podPhase == apiv1.PodPending {
-						time.Sleep(time.Second * 3)
+						//if c.addr != "" {
+						c.hub.broadcast <- c
+						//}
 					} else if podPhase == apiv1.PodFailed {
 						break
 					} else if podPhase == apiv1.PodSucceeded {
@@ -93,7 +97,7 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
-			log_back_to_frontend(c, kubeconfigName, nameSpace, nodeNum,
+			log_back_to_frontend(c, kubeconfigName, nameSpace,
 				&c.hub.clients[*c.userIds].Head.rm.realPvcName,
 				nodeNum, gpuNum)
 		case "service":

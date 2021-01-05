@@ -36,7 +36,7 @@ type recvMsgContent struct {
 }
 type selectNodes struct {
 	NodeNames string `json:"nodeName"`
-	GPUNum    int    `json:"GPUNum"`
+	GPUNum    int    `json:"gpuNum"`
 }
 type Ids struct {
 	Uid int `json:"uid"`

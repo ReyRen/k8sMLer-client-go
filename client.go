@@ -85,6 +85,17 @@ func (c *Client) readPump() {
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
+					resourceOperator(c,
+						kubeconfigName,
+						"delete",
+						"pod",
+						nameSpace,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				}
 			}
 		}()
@@ -139,7 +150,7 @@ func (c *Client) writePump() {
 
 			if typeCode == RSRESPOND {
 				//logStatusMsg := strings.Split(c.hub.clients[*c.userIds].Head.sm.Content.Log, " ")
-				c.hub.clients[*c.userIds].Head.sm.Type = RSRESPOND
+				c.hub.clients[*c.userIds].Head.sm.Type = typeCode
 				c.hub.broadcast <- c
 			}
 

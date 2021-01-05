@@ -156,15 +156,181 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 	}
 }
 
-func Get_pod_status(podClient v1.PodInterface, podName string) apiv1.PodPhase {
-
+func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) apiv1.PodPhase {
 	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
+	podconditions := podv1.Status.Conditions
+	/*for i := 0; i < len(podconditions); i++ {
+	fmt.Printf("%d..%d...%d..%d..%d..%d..\n", i, i, i, i, i, i)
+	fmt.Printf("lens: %d\n", len(podconditions))
+	fmt.Printf("v.Type: %s\n", podconditions[i].Type)
+	fmt.Printf("v.Status: %s\n", podconditions[i].Status)
+	fmt.Printf("v.Reason: %s\n", podconditions[i].Reason)
+	fmt.Printf("v.Message: %s\n", podconditions[i].Message)*/
+	/*
+		0..0...0..0..0..0..
+		lens: 1
+		v.Type: PodScheduled
+		v.Status: True
+		v.Reason:
+		v.Message:
+		0..0...0..0..0..0..
+		lens: 4
+		v.Type: Initialized
+		v.Status: True
+		v.Reason:
+		v.Message:
+		1..1...1..1..1..1..
+		lens: 4
+		v.Type: Ready
+		v.Status: False
+		v.Reason: ContainersNotReady
+		v.Message: containers with unready status: [gpu0-pod-eqp78m0kgaq0m57-container-eqp78m0kgaq0m57]
+		2..2...2..2..2..2..
+		lens: 4
+		v.Type: ContainersReady
+		v.Status: False
+		v.Reason: ContainersNotReady
+		v.Message: containers with unready status: [gpu0-pod-eqp78m0kgaq0m57-container-eqp78m0kgaq0m57]
+		3..3...3..3..3..3..
+		lens: 4
+		v.Type: PodScheduled
+		v.Status: True
+		v.Reason:
+		v.Message:
+		0..0...0..0..0..0..
+		lens: 4
+		v.Type: Initialized
+		v.Status: True
+		v.Reason:
+		v.Message:
+		1..1...1..1..1..1..
+		lens: 4
+		v.Type: Ready
+		v.Status: False
+		v.Reason: ContainersNotReady
+		v.Message: containers with unready status: [gpu0-pod-eqp78m0kgaq0m57-container-eqp78m0kgaq0m57]
+		2..2...2..2..2..2..
+		lens: 4
+		v.Type: ContainersReady
+		v.Status: False
+		v.Reason: ContainersNotReady
+		v.Message: containers with unready status: [gpu0-pod-eqp78m0kgaq0m57-container-eqp78m0kgaq0m57]
+		3..3...3..3..3..3..
+		lens: 4
+		v.Type: PodScheduled
+		v.Status: True
+		v.Reason:
+		v.Message:
+		0..0...0..0..0..0..
+		lens: 4
+		v.Type: Initialized
+		v.Status: True
+		v.Reason:
+		v.Message:
+		1..1...1..1..1..1..
+		lens: 4
+		v.Type: Ready
+		v.Status: True
+		v.Reason:
+		v.Message:
+		2..2...2..2..2..2..
+		lens: 4
+		v.Type: ContainersReady
+		v.Status: True
+		v.Reason:
+		v.Message:
+		3..3...3..3..3..3..
+		lens: 4
+		v.Type: PodScheduled
+		v.Status: True
+		v.Reason:
+		v.Message:
+		TRACE: 2021/01/04 10:14:53 service-handler.go:49: created gpu1-svc-eqp78m0kgaq0m57
+		TRACE: 2021/01/04 10:14:53 pod-handler.go:120: created gpu1-pod-eqp78m0kgaq0m57
+		0..0...0..0..0..0..
+		lens: 1
+		v.Type: PodScheduled
+		v.Status: False
+		v.Reason: Unschedulable
+		v.Message: 0/9 nodes are available: 2 node(s) didn't match node selector, 7 Insufficient nvidia.com/gpu.
+		0..0...0..0..0..0..
+		lens: 1
+		v.Type: PodScheduled
+		v.Status: False
+		v.Reason: Unschedulable
+		v.Message: 0/9 nodes are available: 2 node(s) didn't match node selector, 7 Insufficient nvidia.com/gpu.
+		0..0...0..0..0..0..
+		lens: 1
+		v.Type: PodScheduled
+		v.Status: False
+		v.Reason: Unschedulable
+		v.Message: 0/9 nodes are available: 2 node(s) didn't match node selector, 7 Insufficient nvidia.com/gpu.
+	*/
+	//}
+	if len(podconditions) == 1 &&
+		podconditions[0].Type == apiv1.PodScheduled &&
+		podconditions[0].Status == apiv1.ConditionFalse {
+		// 资源不充足的pending
+		*statusType = INSUFFICIENTPENDING
+		Trace.Printf("%s insufficient resouces...\n", podName)
+	} else if len(podconditions) == 4 {
+		Trace.Printf("%s resouces pass...\n", podName)
+	}
+	/*flag := 0
+	for true {
+		if flag == 1 {
+			break
+		}
+		podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
+		if podv1.Status.Phase == apiv1.PodPending {
+			containerstatues := podv1.Status.ContainerStatuses // 1
+			fmt.Printf("tttttttttttttttttt:", len(containerstatues))
+			for _, v := range containerstatues {
+				//v.State.Terminated.Reason
+				//v.State.Terminated.Message
+				if v.State.Waiting.Reason == "ContainerCreating" {
+					Trace.Printf("ContainerCreating...\n")
+					continue
+				} else {
+					Trace.Printf("ContainerCreating done...\n")
+					flag = 1
+				}
+			}
+			podconditions := podv1.Status.Conditions // 4
+			fmt.Printf("sssssssssssssss:", len(podconditions))
+			for _, v := range podconditions {
+				if v.Type == apiv1.PodScheduled { // creating阶段PodScheduled也是true
+					if v.Status == apiv1.ConditionFalse {
+						fmt.Printf("v.Status: %s\n", v.Status)
+						fmt.Printf("v.Reason: %s\n", v.Reason)
+						fmt.Printf("v.Message: %s\n", v.Message)
+					} else {
+						fmt.Printf("xxxxxxxxxxxxxxxxxxxxxxxxxx:PENDING 11\n")
+						fmt.Printf("v.Status: %s\n", v.Status)
+						fmt.Printf("v.Reason: %s\n", v.Reason)
+						fmt.Printf("v.Message: %s\n", v.Message)
+					}
+				}
+			}
+		} else if podv1.Status.Phase == apiv1.PodRunning {
+			break
+		} else if podv1.Status.Phase == apiv1.PodSucceeded {
+
+		} else if podv1.Status.Phase == apiv1.PodFailed {
+
+		} else if podv1.Status.Phase == apiv1.PodUnknown {
+
+		}
+		time.Sleep(time.Second * 1)
+	}*/
+	//podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
 	/*
 		podCondition[0].Status:False
 		podCondition[0].Message:0/3 nodes are available: 3 Insufficient nvidia.com/gpu.
 		podCondition[0].Reason:Unschedulable
 		podCondition[0].podPhase:Pending
 	*/
+	//return podv1.Status.Phase
 	return podv1.Status.Phase
 }
 

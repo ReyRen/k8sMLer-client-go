@@ -43,7 +43,7 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string, nodeNum int, gpuNum int) {
+func LogMonitor(c *Client, rd io.Reader, realPvcName *string, nodeNum int, gpuNum int) {
 	r := bufio.NewReader(rd)
 	flag := 0
 	endStr, startStr := PraseTmpString(*realPvcName)
@@ -58,7 +58,7 @@ func LogMonitor(c *Client, rd io.Reader, gpus int, realPvcName *string, nodeNum 
 		//fmt.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
-				exec_init_program(c, startStr+strconv.Itoa(gpus-1)+"-pod-"+endStr, nodeNum, gpuNum)
+				exec_init_program(c, startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, nodeNum, gpuNum)
 			}
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
@@ -137,6 +137,7 @@ const (
 
 	// statusCode to frontend
 	RECVSTART           = 10 // 训练指令已发送
+	INSUFFICIENTPENDING = 11 // 没有资源的pending状态
 	TRAININGSTART       = 12 // 开始训练
 	TRAININGSTOPSUCCESS = 13 // 训练正常结束
 	TRAININGSTOPFAILED  = 14 // 训练异常结束
@@ -303,10 +304,10 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 		c.hub.clients[*c.userIds].Head.ips +
 		" --nodes=" +
 		strconv.Itoa(nodeNum) +
-		" --mp_size=" +
-		strconv.Itoa(gpuNum) +
 		" --model_parameters=" +
 		c.hub.clients[*c.userIds].Head.rm.Content.Params +
+		" --mp_size=" +
+		strconv.Itoa(gpuNum) +
 		" --user_id=" +
 		strconv.Itoa(c.userIds.Uid) +
 		" --task_id=" +
@@ -332,7 +333,6 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 func log_back_to_frontend(c *Client,
 	kubeconfig string,
 	namespaceName string,
-	nodeQuantity int,
 	realPvcName *string,
 	nodeNum int,
 	gpuNum int) {
@@ -350,14 +350,14 @@ func log_back_to_frontend(c *Client,
 
 	endStr, startStr := PraseTmpString(*realPvcName)
 	//fmt.Println("get pods log...")
-	result := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+	result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
 		Timestamps: false, // timestamps
 	})
 	// used for ftp log upload
-	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
@@ -376,7 +376,7 @@ func log_back_to_frontend(c *Client,
 	//return podLogs
 	defer podLogs.Close()
 	go ftpUploader(c, podLogs2)
-	LogMonitor(c, podLogs, nodeQuantity, realPvcName, nodeNum, gpuNum)
+	LogMonitor(c, podLogs, realPvcName, nodeNum, gpuNum)
 }
 
 func trimQuotes(s string) string {
