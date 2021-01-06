@@ -42,6 +42,7 @@ func (c *Client) readPump() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				Error.Printf("[%d, %d]: readMessage error: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			}
+			fmt.Println(err)
 			//flush websites and close website would caused ReadMessage err and trigger defer func
 			return
 		}
@@ -86,6 +87,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
+					// do not send to client socket
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",
@@ -96,6 +98,8 @@ func (c *Client) readPump() {
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
+					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 				}
 			}
 		}()

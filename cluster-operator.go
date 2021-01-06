@@ -71,7 +71,7 @@ func resourceOperator(c *Client,
 					imageName = IMAGE
 				}
 				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString,
-					labelName, int64(1), &gracePeriodSeconds, *realPvcName, i,
+					labelName, int64(gpuNum), &gracePeriodSeconds, *realPvcName, i,
 					nodeNum, imageName, (*selectNodes)[i].NodeNames)
 				for true {
 					time.Sleep(time.Second * 3)
@@ -82,9 +82,10 @@ func resourceOperator(c *Client,
 						c.hub.clients[*c.userIds].Head.ips += ip + ","
 						break
 					} else if podPhase == apiv1.PodPending {
-						//if c.addr != "" {
 						c.hub.broadcast <- c
-						//}
+						if c.hub.clients[*c.userIds].Head.sm.Type == INSUFFICIENTPENDING {
+							break
+						}
 					} else if podPhase == apiv1.PodFailed {
 						break
 					} else if podPhase == apiv1.PodSucceeded {

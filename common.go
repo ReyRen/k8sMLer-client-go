@@ -128,7 +128,7 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 	// Maximum message size allowed from peer.
-	maxMessageSize = 512
+	maxMessageSize = 4096
 
 	// define the default namespace RS located
 	nameSpace = "web"
@@ -141,6 +141,7 @@ const (
 	TRAININGSTART       = 12 // 开始训练
 	TRAININGSTOPSUCCESS = 13 // 训练正常结束
 	TRAININGSTOPFAILED  = 14 // 训练异常结束
+	TRAININGRESET       = 15 // 二度计算失败后，用户重新连入ws，返回给web的标志，否则将一直是INSUFFICIENTPENDING
 
 	TRAINLOGDONE  = "111Done111"
 	TRAINLOGSTART = "111Start111"
