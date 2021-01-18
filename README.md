@@ -37,3 +37,7 @@ make run
 更改common.go中关于server IP的宏
 
 因项目需要使用到了intel的multus-cni作为pod中多虚拟网卡的CNI，如果使用请参考官方指南，否则请代码中屏蔽
+
+### harbor
+
+采用了harbor 2.1.3作为私有的镜像仓库
