@@ -162,6 +162,9 @@ const (
 	// 10Gi ips substring
 	MATCHIPS = "192.168.100."
 
+	// docker image registry server
+	REGISTRYSERVER = "172.18.29.81:8080"
+
 	// transfor paramaters (workaround for ssh execute cmd cannot use >)
 	PARAMS_TRANS_SCRIPT = "params_trans.sh"
 	// init script
@@ -295,37 +298,67 @@ func get_node_info(c *Client) {
 }
 
 func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int) {
-	base_cmd_string := "kubectl exec " +
-		exec_pod_name +
-		" -n " +
-		nameSpace +
-		" -it -- " +
-		"/bin/bash " + PARAMS_IN_POD + " \"" +
-		"--ip=" +
-		c.hub.clients[*c.userIds].Head.ips +
-		" --nodes=" +
-		strconv.Itoa(nodeNum) +
-		" --model_parameters=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.Params +
-		" --mp_size=" +
-		strconv.Itoa(gpuNum) +
-		" --user_id=" +
-		strconv.Itoa(c.userIds.Uid) +
-		" --task_id=" +
-		strconv.Itoa(c.userIds.Tid) +
-		" --model_type=" +
-		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
-		" --model_url=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.OriginalModelUrl +
-		" --model_url_con=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.ContinuousModelUrl +
-		" --framework=" +
-		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.FrameworkType) +
-		" --selected_dataset=" +
-		c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset +
-		"\""
+	var base_cmd_string string
+	if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 {
+		base_cmd_string = "kubectl exec " +
+			exec_pod_name +
+			" -n " +
+			nameSpace +
+			" -it -- " +
+			"/bin/bash " + PARAMS_IN_POD + " \"" +
+			"--ip=" +
+			c.hub.clients[*c.userIds].Head.ips +
+			" --nodes=" +
+			strconv.Itoa(nodeNum) +
+			" --model_parameters=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.Params +
+			" --mp_size=" +
+			strconv.Itoa(gpuNum) +
+			" --user_id=" +
+			strconv.Itoa(c.userIds.Uid) +
+			" --task_id=" +
+			strconv.Itoa(c.userIds.Tid) +
+			" --model_type=" +
+			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
+			" --cmd=" +
+			"'" +
+			c.hub.clients[*c.userIds].Head.rm.Content.CommandBox +
+			"'" +
+			"\""
+	} else {
+		base_cmd_string = "kubectl exec " +
+			exec_pod_name +
+			" -n " +
+			nameSpace +
+			" -it -- " +
+			"/bin/bash " + PARAMS_IN_POD + " \"" +
+			"--ip=" +
+			c.hub.clients[*c.userIds].Head.ips +
+			" --nodes=" +
+			strconv.Itoa(nodeNum) +
+			" --model_parameters=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.Params +
+			" --mp_size=" +
+			strconv.Itoa(gpuNum) +
+			" --user_id=" +
+			strconv.Itoa(c.userIds.Uid) +
+			" --task_id=" +
+			strconv.Itoa(c.userIds.Tid) +
+			" --model_type=" +
+			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
+			" --model_url=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.OriginalModelUrl +
+			" --model_url_con=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.ContinuousModelUrl +
+			" --framework=" +
+			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.FrameworkType) +
+			" --selected_dataset=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset +
+			"\""
+	}
 
 	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
+	Trace.Println(cmd)
 	if err := cmd.Run(); err != nil {
 		Error.Printf("[%d, %d]: command run err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}

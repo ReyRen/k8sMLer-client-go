@@ -60,16 +60,21 @@ func resourceOperator(c *Client,
 
 			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 			endStr, startStr := PraseTmpString(*realPvcName)
-			for i := 0; i < nodeNum; i++ {
-				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr,
-					labelName, &gracePeriodSeconds)
 
-				var imageName string
+			var imageName string
+			if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 {
+				// 专有任务 -- 通过选择镜像列表
+				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
+			} else {
 				if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdection" {
 					imageName = IMAGE_MMDECTION
 				} else {
 					imageName = IMAGE
 				}
+			}
+			for i := 0; i < nodeNum; i++ {
+				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr,
+					labelName, &gracePeriodSeconds)
 				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString,
 					labelName, int64(gpuNum), &gracePeriodSeconds, *realPvcName, i,
 					nodeNum, imageName, (*selectNodes)[i].NodeNames)

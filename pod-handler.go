@@ -29,9 +29,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 	var args []string
 	if currentI == totalI-1 {
 		// last one pod
-		args = []string{MASTER_TAIL}
+		args = []string{INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + ";python " + START_IN_POD + END_TAIL}
 	} else {
-		args = []string{CHILD_TAIL}
+		args = []string{INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL}
 	}
 
 	// assemble a resource limit

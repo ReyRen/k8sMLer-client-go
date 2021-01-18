@@ -33,6 +33,8 @@ type recvMsgContent struct {
 	ToolBoxName        string         `json:"toolBoxName"`
 	Params             string         `json:"params"`
 	SelectedDataset    string         `json:"selectedDataset"`
+	ImageName          string         `json:"imageName"`
+	CommandBox         string         `json:"cmd"`
 }
 type selectNodes struct {
 	NodeNames string `json:"nodeName"`
