@@ -17,14 +17,15 @@ type clientsocketmsg struct {
 
 //--------------------------------------------------接受消息--------------------------------------------------
 type recvMsg struct {
-	Type        int             `json:"type"`
-	Content     *recvMsgContent `json:"content"`
-	realPvcName string
+	Type       int             `json:"type"`
+	Content    *recvMsgContent `json:"content"`
+	RandomName string
 }
 type recvMsgContent struct {
 	IDs                *Ids           `json:"ids"`
 	OriginalModelUrl   string         `json:"originalModelUrl"`
 	ContinuousModelUrl string         `json:"continuousModelUrl"`
+	modelName          string         `json:"modelName"`
 	ResourceType       string         `json:"resourceType"`
 	SelectedNodes      *[]selectNodes `json:"selectedNodes"`
 	ModelType          int            `json:"modelType"`
@@ -34,6 +35,7 @@ type recvMsgContent struct {
 	Params             string         `json:"params"`
 	SelectedDataset    string         `json:"selectedDataset"`
 	ImageName          string         `json:"imageName"`
+	DistributingMethod string         `json:"distributingMethod"`
 	CommandBox         string         `json:"cmd"`
 }
 type selectNodes struct {

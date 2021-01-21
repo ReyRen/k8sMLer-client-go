@@ -33,9 +33,9 @@ func (c *Client) readPump() {
 			Error.Printf("[%d, %d]: map remove err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 		}
 	}()
-	c.conn.SetReadLimit(maxMessageSize)
+	/*c.conn.SetReadLimit(maxMessageSize)
 	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { _ = c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetPongHandler(func(string) error { _ = c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })*/
 	for {
 		_, message, err := c.conn.ReadMessage() // This is a block func, once ws closed, this would be get err
 		if err != nil {
@@ -65,7 +65,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+						&c.hub.clients[*c.userIds].Head.rm.RandomName)
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
@@ -85,7 +85,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+						&c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
 					// do not send to client socket
 					resourceOperator(c,
@@ -97,7 +97,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+						&c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
 					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 				}

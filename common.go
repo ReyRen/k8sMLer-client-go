@@ -43,10 +43,10 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(c *Client, rd io.Reader, realPvcName *string, nodeNum int, gpuNum int) {
+func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nodeNum int, gpuNum int) {
 	r := bufio.NewReader(rd)
 	flag := 0
-	endStr, startStr := PraseTmpString(*realPvcName)
+	//endStr, startStr := PraseTmpString(*realPvcName)
 
 	for {
 		line, err := r.ReadBytes('\n')
@@ -58,7 +58,7 @@ func LogMonitor(c *Client, rd io.Reader, realPvcName *string, nodeNum int, gpuNu
 		//fmt.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
-				exec_init_program(c, startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, nodeNum, gpuNum)
+				exec_init_program(c, startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, nodeNum, gpuNum)
 			}
 			c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
 			c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
@@ -77,7 +77,7 @@ func LogMonitor(c *Client, rd io.Reader, realPvcName *string, nodeNum int, gpuNu
 					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+					&c.hub.clients[*c.userIds].Head.rm.RandomName)
 				return
 			} else if strings.Contains(string(line), TRAINLOGDONE) {
 				clientSocket(c, ENDTRAININGSTOPNORMAL)
@@ -90,7 +90,7 @@ func LogMonitor(c *Client, rd io.Reader, realPvcName *string, nodeNum int, gpuNu
 					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.realPvcName)
+					&c.hub.clients[*c.userIds].Head.rm.RandomName)
 				return
 			}
 			/*if strings.Contains(string(line), TRAINLOGSTART) {
@@ -305,7 +305,7 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 			" -n " +
 			nameSpace +
 			" -it -- " +
-			"/bin/bash " + PARAMS_IN_POD + " \"" +
+			"/bin/bash " + "/storage-root/scripts/params_trans.sh" + " \"" +
 			"--ip=" +
 			c.hub.clients[*c.userIds].Head.ips +
 			" --nodes=" +
@@ -324,6 +324,8 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 			"'" +
 			c.hub.clients[*c.userIds].Head.rm.Content.CommandBox +
 			"'" +
+			" --distributingMethod" +
+			c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod +
 			"\""
 	} else {
 		base_cmd_string = "kubectl exec " +
@@ -367,7 +369,8 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 func log_back_to_frontend(c *Client,
 	kubeconfig string,
 	namespaceName string,
-	realPvcName *string,
+	startStr string,
+	RandomName string,
 	nodeNum int,
 	gpuNum int) {
 
@@ -382,16 +385,16 @@ func log_back_to_frontend(c *Client,
 	// define resource
 	podClient := clientset.CoreV1().Pods(namespaceName)
 
-	endStr, startStr := PraseTmpString(*realPvcName)
+	//endStr, startStr := PraseTmpString(*realPvcName)
 	//fmt.Println("get pods log...")
-	result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+	result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
 		Timestamps: false, // timestamps
 	})
 	// used for ftp log upload
-	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
@@ -410,7 +413,7 @@ func log_back_to_frontend(c *Client,
 	//return podLogs
 	defer podLogs.Close()
 	go ftpUploader(c, podLogs2)
-	LogMonitor(c, podLogs, realPvcName, nodeNum, gpuNum)
+	LogMonitor(c, podLogs, startStr, RandomName, nodeNum, gpuNum)
 }
 
 func trimQuotes(s string) string {

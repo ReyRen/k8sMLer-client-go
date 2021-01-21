@@ -12,7 +12,7 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim,
 	pvcName string,
 	tmpString string,
 	labelName string,
-	cap string) string {
+	cap string) {
 
 	storageclassName := STORAGECLASS
 
@@ -43,24 +43,22 @@ func PvcReady(pvcs *apiv1.PersistentVolumeClaim,
 			VolumeMode:       nil, // by default is the raw block
 		},
 	}
-	return pvcName
 }
 
 func Create_pvc(pvcClient v1.PersistentVolumeClaimInterface,
 	pvcName string,
 	tmpString string,
 	labelName string,
-	caps string) string {
+	caps string) {
 
 	var pvcs apiv1.PersistentVolumeClaim
 
-	realName := PvcReady(&pvcs, pvcName, tmpString, labelName, caps)
+	PvcReady(&pvcs, pvcName, tmpString, labelName, caps)
 	resultPVC, err := pvcClient.Create(context.TODO(), &pvcs, metav1.CreateOptions{})
 	if err != nil {
 		Error.Println("create the pvc err : ", err)
 	}
 	Trace.Printf("created %s\n", resultPVC.GetObjectMeta().GetName())
-	return realName
 }
 
 func List_pvc(pvcClient v1.PersistentVolumeClaimInterface, labelName string) {

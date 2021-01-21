@@ -42,10 +42,12 @@ func resourceOperator(c *Client,
 	// delete graceful
 	gracePeriodSeconds := int64(0) // delete immediately
 	// genereate the same randomString at the same time
-	tmpString := GetRandomString(15)
 
 	switch operator {
 	case "create":
+		tmpString := GetRandomString(15)
+		c.hub.clients[*c.userIds].Head.rm.RandomName = tmpString
+
 		Trace.Printf("[%d, %d]:create operation\n", c.userIds.Uid, c.userIds.Tid)
 		switch resource {
 		case "pod":
@@ -58,14 +60,15 @@ func resourceOperator(c *Client,
 				c.hub.broadcast <- c
 			}
 
-			*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
-			endStr, startStr := PraseTmpString(*realPvcName)
+			//*realPvcName = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
+			//endStr, startStr := PraseTmpString(*realPvcName)
 
 			var imageName string
 			if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 {
 				// 专有任务 -- 通过选择镜像列表
 				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
 			} else {
+				Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 				if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdection" {
 					imageName = IMAGE_MMDECTION
 				} else {
@@ -73,11 +76,14 @@ func resourceOperator(c *Client,
 				}
 			}
 			for i := 0; i < nodeNum; i++ {
-				_ = Create_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr,
+				_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 					labelName, &gracePeriodSeconds)
-				Create_pod(podClient, startStr+strconv.Itoa(i)+"-pod-"+endStr, tmpString,
+				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, tmpString,
 					labelName, int64(gpuNum), &gracePeriodSeconds, *realPvcName, i,
-					nodeNum, imageName, (*selectNodes)[i].NodeNames)
+					nodeNum, imageName, (*selectNodes)[i].NodeNames,
+					c.hub.clients[*c.userIds].Head.rm.Content.ModelType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ContinuousModelUrl,
+					"/ftp/user/"+strconv.Itoa(c.userIds.Uid)+"/"+strconv.Itoa(c.userIds.Tid))
 				for true {
 					time.Sleep(time.Second * 3)
 					podPhase := Get_pod_status(&(c.hub.clients[*c.userIds].Head.sm.Type), podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
@@ -103,14 +109,14 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
-			log_back_to_frontend(c, kubeconfigName, nameSpace,
-				&c.hub.clients[*c.userIds].Head.rm.realPvcName,
+			log_back_to_frontend(c, kubeconfigName, nameSpace, kindName,
+				c.hub.clients[*c.userIds].Head.rm.RandomName,
 				nodeNum, gpuNum)
 		case "service":
 			_ = Create_service(svcClient, kindName, labelName, &gracePeriodSeconds)
 		case "pvc":
 			/*choose to use storageclass*/
-			_ = Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
+			Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
 		default:
 			Error.Println("resource is required[-o], only support pod,service")
 		}
@@ -118,16 +124,18 @@ func resourceOperator(c *Client,
 		Trace.Printf("[%d, %d]:delete operation\n", c.userIds.Uid, c.userIds.Tid)
 		switch resource {
 		case "pod":
-			endStr, startStr := PraseTmpString(*realPvcName)
+			//endStr, startStr := PraseTmpString(*realPvcName)
 			for i := 0; i < nodeNum; i++ {
-				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+endStr, labelName, &gracePeriodSeconds)
-				Delete_service(svcClient, startStr+strconv.Itoa(i)+"-svc-"+endStr, &gracePeriodSeconds)
+				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName, labelName, &gracePeriodSeconds)
+				Delete_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+c.hub.clients[*c.userIds].Head.rm.RandomName, &gracePeriodSeconds)
 			}
-			Delete_pvc(pvcClient, startStr+"-pvc-"+endStr, labelName, &gracePeriodSeconds)
+			Delete_pvc(pvcClient, kindName+"-pvc-"+c.hub.clients[*c.userIds].Head.rm.RandomName, labelName, &gracePeriodSeconds)
 		case "service":
 			Delete_service(svcClient, kindName, &gracePeriodSeconds)
 		case "pvc":
-			Delete_pvc(pvcClient, kindName, labelName, &gracePeriodSeconds)
+			if c.hub.clients[*c.userIds].Head.rm.Content.ModelType != 7 {
+				Delete_pvc(pvcClient, kindName, labelName, &gracePeriodSeconds)
+			}
 		default:
 			Error.Println("resource is required[-o], only support pod,service")
 		}

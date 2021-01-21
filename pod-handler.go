@@ -98,6 +98,256 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 	}
 }
 
+func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
+	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
+	currentI int, totalI int, imageName string, bindName string, continueModelURL string, selfModelUrl string) {
+
+	headDir := "/srv/nfs4/www/html"
+	// continueModelURL = /ftp/user/11/166/result
+	// modelName = erhgreh.rar
+
+	// assemble a container name
+	containName := podName + "-container-" + tmpString
+
+	// multus-cni for different interface in pods
+	multus := make(map[string]string)
+	multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
+
+	// get the execute args
+	var args []string
+	if currentI == totalI-1 {
+		// last one pod
+		args = []string{INIT_TAIL + "python /storage-root/scripts/start.py" + END_TAIL}
+	} else {
+		args = []string{INIT_TAIL + END_TAIL}
+	}
+
+	// assemble a resource limit
+	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)
+	var resourceQuantity resource.Quantity
+	resourceQuantity.Set(gpuQuantity)
+	resourceLimit["nvidia.com/gpu"] = resourceQuantity
+
+	if continueModelURL == "" {
+		// 非续训
+		*pods = apiv1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        podName,
+				Labels:      map[string]string{labelName: labelName},
+				Annotations: multus, // need for multus-cni
+			},
+			Spec: apiv1.PodSpec{
+				Volumes: []apiv1.Volume{
+					{
+						Name: "datasets",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     "/srv/nfs4/www/html/ftp/datasets/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "models",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     headDir + selfModelUrl + "/result/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "scripts",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     "/srv/nfs4/www/html/ftp/script/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "tblog",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     headDir + selfModelUrl + "/result/TensorBoardLog",
+								ReadOnly: false,
+							},
+						},
+					},
+				},
+				NodeSelector: map[string]string{"kubernetes.io/hostname": bindName},
+				Containers: []apiv1.Container{
+					{
+						Name:       containName,
+						Image:      imageName,
+						Command:    []string{"/bin/sh", "-c"},
+						Args:       args,
+						WorkingDir: "",
+						Ports:      []apiv1.ContainerPort{},
+						Env:        nil,
+						Resources: apiv1.ResourceRequirements{
+							Limits:   resourceLimit,
+							Requests: nil,
+						},
+						VolumeMounts: []apiv1.VolumeMount{
+							{
+								Name:      "datasets",
+								MountPath: "/storage-root/datasets",
+							},
+							{
+								Name:      "models",
+								MountPath: "/storage-root/models",
+							},
+							{
+								Name:      "scripts",
+								MountPath: "/storage-root/scripts",
+							},
+							{
+								Name:      "tblog",
+								MountPath: "/storage-root/TensorBoardLog",
+							},
+						},
+						TerminationMessagePolicy: apiv1.TerminationMessageFallbackToLogsOnError,
+						/*
+							TerminationMessageFallbackToLogsOnError will read the most recent contents
+							of the container logs for the container status message when the container
+							exits with an error and the termination Message Path has no contents.
+						*/
+					},
+				},
+				RestartPolicy:                 "",
+				TerminationGracePeriodSeconds: gracePeriodSeconds,
+				//NodeSelector: map[string]string{labelName: labelName},
+				NodeName:          "", // auto
+				Hostname:          "",
+				Affinity:          nil,
+				PriorityClassName: "",
+				Priority:          nil,
+			},
+			Status: apiv1.PodStatus{},
+		}
+	} else {
+		*pods = apiv1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        podName,
+				Labels:      map[string]string{labelName: labelName},
+				Annotations: multus, // need for multus-cni
+			},
+			Spec: apiv1.PodSpec{
+				Volumes: []apiv1.Volume{
+					{
+						Name: "datasets",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     "/srv/nfs4/www/html/ftp/datasets/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "models",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     headDir + selfModelUrl + "/result/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "models-parent",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     headDir + continueModelURL,
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "scripts",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     "/srv/nfs4/www/html/ftp/script/",
+								ReadOnly: false,
+							},
+						},
+					},
+					{
+						Name: "tblog",
+						VolumeSource: apiv1.VolumeSource{
+							NFS: &apiv1.NFSVolumeSource{
+								Server:   "192.169.100.1",
+								Path:     headDir + selfModelUrl + "/result/TensorBoardLog",
+								ReadOnly: false,
+							},
+						},
+					},
+				},
+				NodeSelector: map[string]string{"kubernetes.io/hostname": bindName},
+				Containers: []apiv1.Container{
+					{
+						Name:       containName,
+						Image:      imageName,
+						Command:    []string{"/bin/sh", "-c"},
+						Args:       args,
+						WorkingDir: "",
+						Ports:      []apiv1.ContainerPort{},
+						Env:        nil,
+						Resources: apiv1.ResourceRequirements{
+							Limits:   resourceLimit,
+							Requests: nil,
+						},
+						VolumeMounts: []apiv1.VolumeMount{
+							{
+								Name:      "datasets",
+								MountPath: "/storage-root/datasets",
+							},
+							{
+								Name:      "models",
+								MountPath: "/storage-root/models",
+							},
+							{
+								Name:      "models-parent",
+								MountPath: "/storage-root/models-parent",
+							},
+							{
+								Name:      "scripts",
+								MountPath: "/storage-root/scripts",
+							},
+							{
+								Name:      "tblog",
+								MountPath: "/storage-root/TensorBoardLog",
+							},
+						},
+						TerminationMessagePolicy: apiv1.TerminationMessageFallbackToLogsOnError,
+						/*
+							TerminationMessageFallbackToLogsOnError will read the most recent contents
+							of the container logs for the container status message when the container
+							exits with an error and the termination Message Path has no contents.
+						*/
+					},
+				},
+				RestartPolicy:                 "",
+				TerminationGracePeriodSeconds: gracePeriodSeconds,
+				//NodeSelector: map[string]string{labelName: labelName},
+				NodeName:          "", // auto
+				Hostname:          "",
+				Affinity:          nil,
+				PriorityClassName: "",
+				Priority:          nil,
+			},
+			Status: apiv1.PodStatus{},
+		}
+	}
+}
+
 func Create_pod(podClient v1.PodInterface,
 	podName string,
 	tmpString string,
@@ -108,11 +358,21 @@ func Create_pod(podClient v1.PodInterface,
 	currentI int,
 	totalI int,
 	imageName string,
-	bindName string) {
+	bindName string,
+	modelType int,
+	continuousModelUrl string,
+	selfModelUrl string) {
 	var pod apiv1.Pod
-
-	PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
-		pvcName, currentI, totalI, imageName, bindName)
+	/*
+	   TODO: 功能合并
+	*/
+	if modelType == 7 {
+		PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
+			currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
+	} else {
+		PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
+			pvcName, currentI, totalI, imageName, bindName)
+	}
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
 		Error.Println("create the pod err : ", err)
