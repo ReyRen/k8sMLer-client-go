@@ -117,7 +117,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	var args []string
 	if currentI == totalI-1 {
 		// last one pod
-		args = []string{INIT_TAIL + "python /storage-root/scripts/start.py" + END_TAIL}
+		args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
 	} else {
 		args = []string{INIT_TAIL + END_TAIL}
 	}
@@ -142,7 +142,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     "/srv/nfs4/www/html/ftp/datasets/",
 								ReadOnly: false,
 							},
@@ -152,7 +152,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -162,7 +162,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     "/srv/nfs4/www/html/ftp/script/",
 								ReadOnly: false,
 							},
@@ -172,8 +172,8 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
-								Path:     headDir + selfModelUrl + "/result/TensorBoardLog",
+								Server:   "192.168.100.1",
+								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
 						},
@@ -284,7 +284,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
 								Server:   "192.169.100.1",
-								Path:     headDir + selfModelUrl + "/result/TensorBoardLog",
+								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
 						},

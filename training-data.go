@@ -35,7 +35,7 @@ type recvMsgContent struct {
 	Params             string         `json:"params"`
 	SelectedDataset    string         `json:"selectedDataset"`
 	ImageName          string         `json:"imageName"`
-	DistributingMethod string         `json:"distributingMethod"`
+	DistributingMethod int            `json:"distributingMethod"`
 	CommandBox         string         `json:"cmd"`
 }
 type selectNodes struct {

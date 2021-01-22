@@ -183,11 +183,11 @@ const (
 	// two scripts URL
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
 	START_URL             = BASE_SCRIPT_URL + START_SCRIPT
-	WGET_PARAMS_TRANS_URL = "wget -c -P " + MOUNTPATH + " " + PARAMS_TRANS_URL + ";"
-	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL
+	WGET_PARAMS_TRANS_URL = ";wget -c -P " + MOUNTPATH + " " + PARAMS_TRANS_URL + ";"
+	WGET_START_URL        = ";wget -c -P " + MOUNTPATH + " " + START_URL
 
 	// create pods args
-	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null;"
+	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null"
 	END_TAIL    = ";tail -f /dev/null"
 	MASTER_TAIL = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + ";python " + START_IN_POD + END_TAIL
 	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
@@ -324,8 +324,10 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 			"'" +
 			c.hub.clients[*c.userIds].Head.rm.Content.CommandBox +
 			"'" +
-			" --distributingMethod" +
-			c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod +
+			" --distributingMethod=" +
+			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod) +
+			" --modelName=" +
+			c.hub.clients[*c.userIds].Head.rm.Content.modelName +
 			"\""
 	} else {
 		base_cmd_string = "kubectl exec " +
