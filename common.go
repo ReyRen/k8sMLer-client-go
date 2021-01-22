@@ -327,7 +327,7 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 			" --distributingMethod=" +
 			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod) +
 			" --modelName=" +
-			c.hub.clients[*c.userIds].Head.rm.Content.modelName +
+			c.hub.clients[*c.userIds].Head.rm.Content.ModelName +
 			"\""
 	} else {
 		base_cmd_string = "kubectl exec " +

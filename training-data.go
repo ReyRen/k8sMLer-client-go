@@ -25,7 +25,7 @@ type recvMsgContent struct {
 	IDs                *Ids           `json:"ids"`
 	OriginalModelUrl   string         `json:"originalModelUrl"`
 	ContinuousModelUrl string         `json:"continuousModelUrl"`
-	modelName          string         `json:"modelName"`
+	ModelName          string         `json:"modelName"`
 	ResourceType       string         `json:"resourceType"`
 	SelectedNodes      *[]selectNodes `json:"selectedNodes"`
 	ModelType          int            `json:"modelType"`
