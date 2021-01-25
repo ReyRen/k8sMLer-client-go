@@ -65,7 +65,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.RandomName)
+						c.hub.clients[*c.userIds].Head.rm.RandomName)
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
@@ -85,7 +85,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.RandomName)
+						c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
 					// do not send to client socket
 					resourceOperator(c,
@@ -97,7 +97,7 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						&c.hub.clients[*c.userIds].Head.rm.RandomName)
+						c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
 					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 				}

@@ -17,7 +17,7 @@ func resourceOperator(c *Client,
 	labelName string,
 	caps string,
 	selectNodes *[]selectNodes,
-	realPvcName *string) { // realPvcName used to get created random rs group name
+	randomName string) {
 
 	var nodeNum int
 	var gpuNum int // for each node
@@ -79,8 +79,8 @@ func resourceOperator(c *Client,
 				_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 					labelName, &gracePeriodSeconds)
 				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, tmpString,
-					labelName, int64(gpuNum), &gracePeriodSeconds, *realPvcName, i,
-					nodeNum, imageName, (*selectNodes)[i].NodeNames,
+					labelName, int64(gpuNum), &gracePeriodSeconds, i, nodeNum, imageName,
+					(*selectNodes)[i].NodeNames,
 					c.hub.clients[*c.userIds].Head.rm.Content.ModelType,
 					c.hub.clients[*c.userIds].Head.rm.Content.ContinuousModelUrl,
 					"/ftp/user/"+strconv.Itoa(c.userIds.Uid)+"/"+strconv.Itoa(c.userIds.Tid))
@@ -140,9 +140,9 @@ func resourceOperator(c *Client,
 			Error.Println("resource is required[-o], only support pod,service")
 		}
 	case "log":
-		endStr, startStr := PraseTmpString(*realPvcName)
+		//endStr, startStr := PraseTmpString(*realPvcName)
 		Trace.Printf("[%d, %d]:get pods log\n", c.userIds.Uid, c.userIds.Tid)
-		result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+endStr, &apiv1.PodLogOptions{
+		result := podClient.GetLogs(kindName+strconv.Itoa(nodeNum-1)+"-pod-"+randomName, &apiv1.PodLogOptions{
 			Container:  "",
 			Follow:     true,
 			Previous:   false,

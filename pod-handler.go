@@ -12,7 +12,7 @@ import (
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
-	pvcName string, currentI int, totalI int, imageName string, bindName string) {
+	currentI int, totalI int, imageName string, bindName string) {
 
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
@@ -52,7 +52,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 					Name: mountName,
 					VolumeSource: apiv1.VolumeSource{
 						PersistentVolumeClaim: &apiv1.PersistentVolumeClaimVolumeSource{
-							ClaimName: pvcName,
+							ClaimName: "gpu-pvc-" + tmpString,
 						},
 					},
 				},
@@ -243,7 +243,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     "/srv/nfs4/www/html/ftp/datasets/",
 								ReadOnly: false,
 							},
@@ -253,7 +253,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -263,7 +263,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models-parent",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     headDir + continueModelURL,
 								ReadOnly: false,
 							},
@@ -273,7 +273,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     "/srv/nfs4/www/html/ftp/script/",
 								ReadOnly: false,
 							},
@@ -283,7 +283,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.169.100.1",
+								Server:   "192.168.100.1",
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
@@ -354,7 +354,6 @@ func Create_pod(podClient v1.PodInterface,
 	labelName string,
 	gpuQuantity int64,
 	gracePeriodSeconds *int64,
-	pvcName string,
 	currentI int,
 	totalI int,
 	imageName string,
@@ -371,7 +370,7 @@ func Create_pod(podClient v1.PodInterface,
 			currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
 	} else {
 		PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
-			pvcName, currentI, totalI, imageName, bindName)
+			currentI, totalI, imageName, bindName)
 	}
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
@@ -532,6 +531,9 @@ func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) 
 		podconditions[0].Status == apiv1.ConditionFalse {
 		// 资源不充足的pending
 		*statusType = INSUFFICIENTPENDING
+		fmt.Println("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
+		fmt.Printf("v.Message: %s\n", podconditions[0].Message)
+		fmt.Println("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
 		Trace.Printf("%s insufficient resouces...\n", podName)
 	} else if len(podconditions) == 4 {
 		Trace.Printf("%s resouces pass...\n", podName)

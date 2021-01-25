@@ -68,6 +68,9 @@ func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nod
 				clientSocket(c, ENDTRAININGSTART)
 			} else if strings.Contains(string(line), TRAINLOGERR) {
 				clientSocket(c, ENDTRAININGSTOPFAIL)
+				c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
+				c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+				c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
 				resourceOperator(c,
 					kubeconfigName,
 					"delete",
@@ -77,10 +80,13 @@ func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nod
 					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.RandomName)
+					c.hub.clients[*c.userIds].Head.rm.RandomName)
 				return
 			} else if strings.Contains(string(line), TRAINLOGDONE) {
 				clientSocket(c, ENDTRAININGSTOPNORMAL)
+				c.hub.clients[*c.userIds].Head.sm.Type = LOGRESPOND
+				c.hub.clients[*c.userIds].Head.sm.Content.Log = string(line)
+				c.hub.clients[*c.userIds].Head.logchan <- c.hub.clients[*c.userIds].Head.sm
 				resourceOperator(c,
 					kubeconfigName,
 					"delete",
@@ -90,7 +96,7 @@ func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nod
 					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
 					"10Gi",
 					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					&c.hub.clients[*c.userIds].Head.rm.RandomName)
+					c.hub.clients[*c.userIds].Head.rm.RandomName)
 				return
 			}
 			/*if strings.Contains(string(line), TRAINLOGSTART) {
@@ -184,7 +190,7 @@ const (
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
 	START_URL             = BASE_SCRIPT_URL + START_SCRIPT
 	WGET_PARAMS_TRANS_URL = ";wget -c -P " + MOUNTPATH + " " + PARAMS_TRANS_URL + ";"
-	WGET_START_URL        = ";wget -c -P " + MOUNTPATH + " " + START_URL
+	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL
 
 	// create pods args
 	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null"
