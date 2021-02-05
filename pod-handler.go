@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"strings"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string,
@@ -18,8 +17,8 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 	containName := podName + "-container-" + tmpString
 
 	// multus-cni for different interface in pods
-	multus := make(map[string]string)
-	multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
+	//multus := make(map[string]string)
+	//multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
 
 	// volumeMount
 	mountPath := MOUNTPATH
@@ -42,9 +41,9 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 
 	*pods = apiv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        podName,
-			Labels:      map[string]string{labelName: labelName},
-			Annotations: multus, // need for multus-cni
+			Name:   podName,
+			Labels: map[string]string{labelName: labelName},
+			//Annotations: multus, // need for multus-cni
 		},
 		Spec: apiv1.PodSpec{
 			Volumes: []apiv1.Volume{
@@ -102,7 +101,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
 	currentI int, totalI int, imageName string, bindName string, continueModelURL string, selfModelUrl string) {
 
-	headDir := "/srv/nfs4/www/html"
+	headDir := "/home/ftper/ftp"
 	// continueModelURL = /ftp/user/11/166/result
 	// modelName = erhgreh.rar
 
@@ -110,8 +109,8 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	containName := podName + "-container-" + tmpString
 
 	// multus-cni for different interface in pods
-	multus := make(map[string]string)
-	multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
+	//multus := make(map[string]string)
+	//multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
 
 	// get the execute args
 	var args []string
@@ -132,18 +131,27 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 		// 非续训
 		*pods = apiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:        podName,
-				Labels:      map[string]string{labelName: labelName},
-				Annotations: multus, // need for multus-cni
+				Name:   podName,
+				Labels: map[string]string{labelName: labelName},
+				//Annotations: multus, // need for multus-cni
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
+					/*{
+						Name: "dshm",
+						VolumeSource: apiv1.VolumeSource{
+							EmptyDir:	&apiv1.EmptyDirVolumeSource{
+								Medium:    apiv1.StorageMediumMemory,
+								SizeLimit: nil,
+							},
+						},
+					},*/
 					{
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
-								Path:     "/srv/nfs4/www/html/ftp/datasets/",
+								Server:   "172.18.29.19",
+								Path:     headDir + "/datasets/",
 								ReadOnly: false,
 							},
 						},
@@ -152,7 +160,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
+								Server:   "172.18.29.19",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -162,8 +170,8 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
-								Path:     "/srv/nfs4/www/html/ftp/script/",
+								Server:   "172.18.29.19",
+								Path:     headDir + "/script/",
 								ReadOnly: false,
 							},
 						},
@@ -172,7 +180,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
+								Server:   "172.18.29.19",
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
@@ -194,6 +202,10 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 							Requests: nil,
 						},
 						VolumeMounts: []apiv1.VolumeMount{
+							/*{
+								Name:      "dshm",
+								MountPath: "/dev/shm",
+							},*/
 							{
 								Name:      "datasets",
 								MountPath: "/storage-root/datasets",
@@ -233,9 +245,9 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	} else {
 		*pods = apiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:        podName,
-				Labels:      map[string]string{labelName: labelName},
-				Annotations: multus, // need for multus-cni
+				Name:   podName,
+				Labels: map[string]string{labelName: labelName},
+				//Annotations: multus, // need for multus-cni
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
@@ -243,8 +255,8 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
-								Path:     "/srv/nfs4/www/html/ftp/datasets/",
+								Server:   "172.18.29.19",
+								Path:     headDir + "/datasets/",
 								ReadOnly: false,
 							},
 						},
@@ -253,7 +265,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
+								Server:   "172.18.29.19",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -263,7 +275,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models-parent",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
+								Server:   "172.18.29.19",
 								Path:     headDir + continueModelURL,
 								ReadOnly: false,
 							},
@@ -273,8 +285,8 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
-								Path:     "/srv/nfs4/www/html/ftp/script/",
+								Server:   "172.18.29.19",
+								Path:     headDir + "/script/",
 								ReadOnly: false,
 							},
 						},
@@ -283,7 +295,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "192.168.100.1",
+								Server:   "172.18.29.19",
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
@@ -365,7 +377,7 @@ func Create_pod(podClient v1.PodInterface,
 	/*
 	   TODO: 功能合并
 	*/
-	if modelType == 7 {
+	if modelType == 7 || modelType == 6 {
 		PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
 			currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
 	} else {
@@ -531,9 +543,6 @@ func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) 
 		podconditions[0].Status == apiv1.ConditionFalse {
 		// 资源不充足的pending
 		*statusType = INSUFFICIENTPENDING
-		fmt.Println("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
-		fmt.Printf("v.Message: %s\n", podconditions[0].Message)
-		fmt.Println("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
 		Trace.Printf("%s insufficient resouces...\n", podName)
 	} else if len(podconditions) == 4 {
 		Trace.Printf("%s resouces pass...\n", podName)
@@ -598,7 +607,7 @@ func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) 
 
 func get_10G_ips(podClient v1.PodInterface, podName string) string {
 	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
-	annotations := podv1.GetAnnotations()
+	/*annotations := podv1.GetAnnotations()
 
 	for k, v := range annotations {
 		//fmt.Println(k, v)
@@ -612,5 +621,6 @@ func get_10G_ips(podClient v1.PodInterface, podName string) string {
 			break
 		}
 	}
-	return ""
+	return ""*/
+	return podv1.Status.PodIP
 }

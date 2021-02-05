@@ -123,9 +123,9 @@ func PraseTmpString(tmpString string) (string, string) {
 
 const (
 	// ip and ports with end
-	socketServer = "172.18.29.81:8082"
+	socketServer = "172.18.29.19:8020"
 	// ip of mine
-	websocketServer = "172.18.29.80:8066"
+	websocketServer = "172.18.29.18:8066"
 
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
@@ -137,9 +137,9 @@ const (
 	maxMessageSize = 4096
 
 	// define the default namespace RS located
-	nameSpace = "web"
+	nameSpace = "generalai"
 	// define storageclass name
-	STORAGECLASS = "web-nfs"
+	STORAGECLASS = "generalai-nfs-storageclass"
 
 	// statusCode to frontend
 	RECVSTART           = 10 // 训练指令已发送
@@ -166,7 +166,7 @@ const (
 	ENDTRAININGSTOPFAIL   = 8
 
 	// 10Gi ips substring
-	MATCHIPS = "192.168.100."
+	//MATCHIPS = "192.168.100."
 
 	// docker image registry server
 	REGISTRYSERVER = "172.18.29.81:8080"
@@ -184,7 +184,7 @@ const (
 	START_IN_POD  = MOUNTPATH + START_SCRIPT
 
 	// base script URL
-	BASE_SCRIPT_URL = "http://192.168.100.1:8008/ftp/script/"
+	BASE_SCRIPT_URL = "http://172.18.29.19/script/"
 
 	// two scripts URL
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
@@ -204,13 +204,17 @@ const (
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
 	// ftp log
-	FTPSERVER = "172.18.29.80:21"
+	FTPSERVER = "172.18.29.19:21"
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
+
+var (
+	CreateLock = 0 // global lock use to make sure RS create sequence
+)
 
 var (
 	// lock
@@ -305,7 +309,7 @@ func get_node_info(c *Client) {
 
 func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int) {
 	var base_cmd_string string
-	if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 {
+	if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 || c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
 		base_cmd_string = "kubectl exec " +
 			exec_pod_name +
 			" -n " +

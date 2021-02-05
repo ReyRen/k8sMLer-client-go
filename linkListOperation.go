@@ -16,6 +16,7 @@ type headNode struct {
 	logchan    chan *sendMsg
 	signalChan chan []byte
 	ips        string
+	mideng     int // forbiden multiple 111Err111
 	next       *Node
 }
 type SameIdsLinkList struct {
@@ -125,17 +126,15 @@ func (list *SameIdsLinkList) linklistRun() {
 	for true {
 		select {
 		case msgs := <-list.Head.logchan:
-			//lock.Lock()
 			currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
 				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
-				if msgs.Content.Log == TRAINLOGERR {
+				/*if strings.Contains(msgs.Content.Log, TRAINLOGERR) {
 					close(currentList.client.sendLog)
-				}
+				}*/
 				currentList = currentList.next
 			}
-			//lock.Unlock()
 		}
 	}
 }

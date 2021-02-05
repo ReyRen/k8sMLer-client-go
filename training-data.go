@@ -53,8 +53,7 @@ type sendMsg struct {
 	Content *sendMsgContent `json:"content"`
 }
 type sendMsgContent struct {
-	Log string `json:"log"`
-	//StatusCode   					int 		     			`json:"statusCode"`
+	Log          string        `json:"log"`
 	ResourceInfo *resourceInfo `json:"resourceInfo"`
 }
 type resourceInfo struct {

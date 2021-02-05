@@ -56,16 +56,27 @@ func (c *Client) readPump() {
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					//handle socket with the frontend
 					clientSocket(c, WAITINGRESOURCE)
-					resourceOperator(c,
-						kubeconfigName,
-						"create",
-						"pod",
-						nameSpace,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						"10Gi",
-						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						c.hub.clients[*c.userIds].Head.rm.RandomName)
+					for true {
+						if CreateLock == 0 {
+							lock.Lock()
+							CreateLock = 1 // start create
+							lock.Unlock()
+							resourceOperator(c,
+								kubeconfigName,
+								"create",
+								"pod",
+								nameSpace,
+								c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+								c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+								"10Gi",
+								c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+								c.hub.clients[*c.userIds].Head.rm.RandomName)
+							break
+						} else {
+							Trace.Printf("[%d/%d] is creating, please wait for a while...\n", c.userIds.Uid, c.userIds.Tid)
+							time.Sleep(time.Second * 3)
+						}
+					}
 
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
@@ -75,7 +86,6 @@ func (c *Client) readPump() {
 					} else {
 						clientSocket(c, ENDTRAININGSTOPFAIL)
 					}
-
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",
@@ -86,21 +96,20 @@ func (c *Client) readPump() {
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						c.hub.clients[*c.userIds].Head.rm.RandomName)
-				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
-					// do not send to client socket
-					resourceOperator(c,
-						kubeconfigName,
-						"delete",
-						"pod",
-						nameSpace,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						"10Gi",
-						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						c.hub.clients[*c.userIds].Head.rm.RandomName)
-				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
-					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 				}
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
+				resourceOperator(c,
+					kubeconfigName,
+					"delete",
+					"pod",
+					nameSpace,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+					"10Gi",
+					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+					c.hub.clients[*c.userIds].Head.rm.RandomName)
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
+				c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 			}
 		}()
 	}
@@ -171,8 +180,13 @@ func (c *Client) writePump() {
 				} else if strings.Contains(c.hub.clients[*c.userIds].Head.sm.Content.Log, TRAINLOGERR) {
 					/*c.hub.clients[*c.userIds].Head.sm.Type = STATUSRESPOND
 					c.hub.clients[*c.userIds].Head.sm.Content.StatusCode = TRAININGSTOPFAILED*/
-					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTOPFAILED
-					c.hub.broadcast <- c
+					if c.hub.clients[*c.userIds].Head.mideng == 0 {
+						c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTOPFAILED
+						c.hub.broadcast <- c
+						lock.Lock()
+						c.hub.clients[*c.userIds].Head.mideng = 1
+						lock.Unlock()
+					}
 					break
 					// block
 
@@ -207,7 +221,6 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-
 			sdmsg, _ := json.Marshal(c.hub.clients[*c.userIds].Head.sm) // STATUSRESPOND or GPU
 			_, err = w.Write(sdmsg)
 			if err != nil {
