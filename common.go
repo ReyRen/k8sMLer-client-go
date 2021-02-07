@@ -199,7 +199,8 @@ const (
 	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
 
 	//images
-	IMAGE           = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
+	//IMAGE           = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
+	IMAGE           = "172.18.29.81:8080/base-images/tf1.14.0_torch1.2.0_py3.6_horovod0.19_opencv_sk_mplot_gjx:02-07"
 	IMAGE_MMDECTION = "horovod:mmdection"
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
@@ -211,10 +212,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-var (
-	CreateLock = 0 // global lock use to make sure RS create sequence
-)
 
 var (
 	// lock
@@ -309,37 +306,39 @@ func get_node_info(c *Client) {
 
 func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int) {
 	var base_cmd_string string
-	if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 || c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
-		base_cmd_string = "kubectl exec " +
-			exec_pod_name +
-			" -n " +
-			nameSpace +
-			" -it -- " +
-			"/bin/bash " + "/storage-root/scripts/params_trans.sh" + " \"" +
-			"--ip=" +
-			c.hub.clients[*c.userIds].Head.ips +
-			" --nodes=" +
-			strconv.Itoa(nodeNum) +
-			" --model_parameters=" +
-			c.hub.clients[*c.userIds].Head.rm.Content.Params +
-			" --mp_size=" +
-			strconv.Itoa(gpuNum) +
-			" --user_id=" +
-			strconv.Itoa(c.userIds.Uid) +
-			" --task_id=" +
-			strconv.Itoa(c.userIds.Tid) +
-			" --model_type=" +
-			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
-			" --cmd=" +
-			"'" +
-			c.hub.clients[*c.userIds].Head.rm.Content.CommandBox +
-			"'" +
-			" --distributingMethod=" +
-			strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod) +
-			" --modelName=" +
-			c.hub.clients[*c.userIds].Head.rm.Content.ModelName +
-			"\""
-	} else {
+	//if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 || c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
+	base_cmd_string = "kubectl exec " +
+		exec_pod_name +
+		" -n " +
+		nameSpace +
+		" -it -- " +
+		"/bin/bash " + "/storage-root/scripts/params_trans.sh" + " \"" +
+		"--ip=" +
+		c.hub.clients[*c.userIds].Head.ips +
+		" --nodes=" +
+		strconv.Itoa(nodeNum) +
+		" --model_parameters=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.Params +
+		" --mp_size=" +
+		strconv.Itoa(gpuNum) +
+		" --user_id=" +
+		strconv.Itoa(c.userIds.Uid) +
+		" --task_id=" +
+		strconv.Itoa(c.userIds.Tid) +
+		" --model_type=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.ModelType) +
+		" --cmd=" +
+		"'" +
+		c.hub.clients[*c.userIds].Head.rm.Content.CommandBox +
+		"'" +
+		" --distributingMethod=" +
+		strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Content.DistributingMethod) +
+		" --modelName=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.ModelName +
+		" --model_url=" +
+		c.hub.clients[*c.userIds].Head.rm.Content.OriginalModelUrl +
+		"\""
+	/*} else {
 		base_cmd_string = "kubectl exec " +
 			exec_pod_name +
 			" -n " +
@@ -369,7 +368,7 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 			" --selected_dataset=" +
 			c.hub.clients[*c.userIds].Head.rm.Content.SelectedDataset +
 			"\""
-	}
+	}*/
 
 	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
 	Trace.Println(cmd)

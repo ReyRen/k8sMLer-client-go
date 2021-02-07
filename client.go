@@ -51,33 +51,20 @@ func (c *Client) readPump() {
 		jsonHandler(message, c.hub.clients[*c.userIds].Head.rm)
 		go func() {
 			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
-
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
 					//handle socket with the frontend
 					clientSocket(c, WAITINGRESOURCE)
-					for true {
-						if CreateLock == 0 {
-							lock.Lock()
-							CreateLock = 1 // start create
-							lock.Unlock()
-							resourceOperator(c,
-								kubeconfigName,
-								"create",
-								"pod",
-								nameSpace,
-								c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-								c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-								"10Gi",
-								c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-								c.hub.clients[*c.userIds].Head.rm.RandomName)
-							break
-						} else {
-							Trace.Printf("[%d/%d] is creating, please wait for a while...\n", c.userIds.Uid, c.userIds.Tid)
-							time.Sleep(time.Second * 3)
-						}
-					}
-
+					resourceOperator(c,
+						kubeconfigName,
+						"create",
+						"pod",
+						nameSpace,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
 					//if c.hub.clients[*c.userIds].Head.sm.Content.StatusCode == TRAININGSTOPSUCCESS {
@@ -96,20 +83,20 @@ func (c *Client) readPump() {
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						c.hub.clients[*c.userIds].Head.rm.RandomName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
+					resourceOperator(c,
+						kubeconfigName,
+						"delete",
+						"pod",
+						nameSpace,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+						"10Gi",
+						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+						c.hub.clients[*c.userIds].Head.rm.RandomName)
+				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
+					c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 				}
-			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
-				resourceOperator(c,
-					kubeconfigName,
-					"delete",
-					"pod",
-					nameSpace,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-					"10Gi",
-					c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-					c.hub.clients[*c.userIds].Head.rm.RandomName)
-			} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESET" {
-				c.hub.clients[*c.userIds].Head.sm.Type = TRAININGRESET
 			}
 		}()
 	}

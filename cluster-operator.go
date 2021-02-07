@@ -68,7 +68,18 @@ func resourceOperator(c *Client,
 			//endStr, startStr := PraseTmpString(*realPvcName)
 
 			var imageName string
-			if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 || c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
+
+			if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 {
+				// 专有任务 -- 通过选择镜像列表
+				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
+				imageName = "172.18.29.81:8080/base-images/pytorch1.6_cuda10_horovod20.0_megatron_gpt2_gjx:02-02"
+			} else if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdetection" {
+				imageName = IMAGE_MMDECTION
+			} else {
+				imageName = IMAGE
+			}
+			/*if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 7 || c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
 				// 专有任务 -- 通过选择镜像列表
 				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
 				if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
@@ -81,7 +92,7 @@ func resourceOperator(c *Client,
 				} else {
 					imageName = IMAGE
 				}
-			}
+			}*/
 			for i := 0; i < nodeNum; i++ {
 				/*_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 				labelName, &gracePeriodSeconds)*/
@@ -116,10 +127,6 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
-
-			lock.Lock()
-			CreateLock = 0
-			lock.Unlock()
 
 			log_back_to_frontend(c, kubeconfigName, nameSpace, kindName,
 				c.hub.clients[*c.userIds].Head.rm.RandomName,

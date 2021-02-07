@@ -137,15 +137,15 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
-					/*{
+					{
 						Name: "dshm",
 						VolumeSource: apiv1.VolumeSource{
-							EmptyDir:	&apiv1.EmptyDirVolumeSource{
+							EmptyDir: &apiv1.EmptyDirVolumeSource{
 								Medium:    apiv1.StorageMediumMemory,
 								SizeLimit: nil,
 							},
 						},
-					},*/
+					},
 					{
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
@@ -202,10 +202,10 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 							Requests: nil,
 						},
 						VolumeMounts: []apiv1.VolumeMount{
-							/*{
+							{
 								Name:      "dshm",
 								MountPath: "/dev/shm",
-							},*/
+							},
 							{
 								Name:      "datasets",
 								MountPath: "/storage-root/datasets",
@@ -251,6 +251,15 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
+					{
+						Name: "dshm",
+						VolumeSource: apiv1.VolumeSource{
+							EmptyDir: &apiv1.EmptyDirVolumeSource{
+								Medium:    apiv1.StorageMediumMemory,
+								SizeLimit: nil,
+							},
+						},
+					},
 					{
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
@@ -318,6 +327,10 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						},
 						VolumeMounts: []apiv1.VolumeMount{
 							{
+								Name:      "dshm",
+								MountPath: "/dev/shm",
+							},
+							{
 								Name:      "datasets",
 								MountPath: "/storage-root/datasets",
 							},
@@ -377,13 +390,15 @@ func Create_pod(podClient v1.PodInterface,
 	/*
 	   TODO: 功能合并
 	*/
-	if modelType == 7 || modelType == 6 {
+	PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
+		currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
+	/*if modelType == 7 || modelType == 6 {
 		PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
 			currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
 	} else {
 		PodReady(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
 			currentI, totalI, imageName, bindName)
-	}
+	}*/
 	_, err := podClient.Create(context.TODO(), &pod, metav1.CreateOptions{})
 	if err != nil {
 		Error.Println("create the pod err : ", err)
