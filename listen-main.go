@@ -38,6 +38,7 @@ func main() {
 
 func listen_main() {
 	flag.Parse()
+	QUEUELIST = make([]*headNode, 0)
 	hub := newHub()
 	go hub.run()
 

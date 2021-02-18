@@ -10,9 +10,10 @@ type msg struct {
 
 // clientsocket send msg
 type clientsocketmsg struct {
-	Uid      int `json:"uid"`
-	Tid      int `json:"tid"`
-	StatusId int `json:"statusId"`
+	Uid      int    `json:"uid"`
+	Tid      int    `json:"tid"`
+	StatusId int    `json:"statusId"`
+	PodName  string `json:"podName"`
 }
 
 //--------------------------------------------------接受消息--------------------------------------------------

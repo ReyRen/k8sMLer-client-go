@@ -9,6 +9,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"log"
@@ -43,19 +44,48 @@ func GetRandomString(l int) string {
 	return string(result)
 }
 
-func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nodeNum int, gpuNum int) {
-	r := bufio.NewReader(rd)
+//func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nodeNum int, gpuNum int) {
+func LogMonitor(c *Client, rr *rest.Request, startStr string, RandomName string, nodeNum int, gpuNum int) {
 	flag := 0
+	/*
+		TODO: workaround for stream send EOF after 4 hours
+	*/
+AGAIN:
+	podLogs, err := rr.Stream(context.TODO())
+	if err != nil {
+		Error.Printf("[%d, %d]: podLogs err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+		return
+	}
+	defer podLogs.Close()
+	r := bufio.NewReader(podLogs)
 	//endStr, startStr := PraseTmpString(*realPvcName)
 
 	for {
 		line, err := r.ReadBytes('\n')
-		if err == io.EOF {
-			break
+		if err == io.ErrClosedPipe {
+			Trace.Println("io.ErrClosedPipe:", err)
+			goto AGAIN
+		} else if err == io.ErrNoProgress {
+			Trace.Println("io.ErrNoProgress:", err)
+			goto AGAIN
+		} else if err == io.ErrShortBuffer {
+			Trace.Println("io.ErrShortBuffer:", err)
+			goto AGAIN
+		} else if err == io.ErrShortWrite {
+			Trace.Println("io.ErrShortWrite:", err)
+			goto AGAIN
+		} else if err == io.ErrUnexpectedEOF {
+			Trace.Println("io.ErrUnexpectedEOF:", err)
+			goto AGAIN
+		} else if err == io.EOF {
+			//break
+			Trace.Println("LogMonitor stream get io.EOF:", err)
+			goto AGAIN
 		} else if err != nil {
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
+			break
 		}
-		//fmt.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
+		Trace.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
 				exec_init_program(c, startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, nodeNum, gpuNum)
@@ -128,7 +158,7 @@ const (
 	websocketServer = "172.18.29.18:8066"
 
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait = 60000000 * time.Second
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
 	// Send pings to peer with this period. Must be less than pongWait.
@@ -208,10 +238,21 @@ const (
 	FTPSERVER = "172.18.29.19:21"
 )
 
+const (
+	BEFORECREATE = 0
+	CREATING     = 1
+	POSTCREATE   = 2
+)
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
+
+var (
+	// 切片队列
+	QUEUELIST []*headNode
+)
 
 var (
 	// lock
@@ -371,7 +412,7 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 	}*/
 
 	cmd := exec.Command("/bin/bash", "-c", base_cmd_string)
-	Trace.Println(cmd)
+	//Trace.Println(cmd)
 	if err := cmd.Run(); err != nil {
 		Error.Printf("[%d, %d]: command run err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
@@ -411,20 +452,22 @@ func log_back_to_frontend(c *Client,
 		Previous:   false,
 		Timestamps: false, // timestamps
 	})
-	podLogs, err := result.Stream(context.TODO())
+	/*podLogs, err := result.Stream(context.TODO())
 	if err != nil {
 		Error.Println("[%d, %d]: podLogs err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
-	}
-	podLogs2, err := result2.Stream(context.TODO())
+	}*/
+	/*podLogs2, err := result2.Stream(context.TODO())
 	if err != nil {
 		Error.Println("[%d, %d]: podLogs2 err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
-	}
+	}*/
 	//return podLogs
-	defer podLogs.Close()
-	go ftpUploader(c, podLogs2)
-	LogMonitor(c, podLogs, startStr, RandomName, nodeNum, gpuNum)
+	//defer podLogs.Close()
+	//go ftpUploader(c, podLogs2)
+	go ftpUploader(c, result2)
+	//LogMonitor(c, podLogs, startStr, RandomName, nodeNum, gpuNum)
+	LogMonitor(c, result, startStr, RandomName, nodeNum, gpuNum)
 }
 
 func trimQuotes(s string) string {
@@ -448,6 +491,11 @@ func clientSocket(c *Client, statusCode int) {
 	clientmsg.Uid = c.userIds.Uid
 	clientmsg.Tid = c.userIds.Tid
 	clientmsg.StatusId = statusCode
+	if statusCode == RESOURCECOMPLETE {
+		clientmsg.PodName = c.hub.clients[*c.userIds].Head.rm.RandomName
+	} else {
+		clientmsg.PodName = ""
+	}
 	socketmsg, _ := json.Marshal(clientmsg)
 	_, err = conn.Write(socketmsg)
 	if err != nil {

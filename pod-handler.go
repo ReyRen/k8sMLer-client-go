@@ -426,6 +426,7 @@ func Delete_pod(podClient v1.PodInterface, podName string, labelName string, gra
 		}); err != nil {
 			Error.Println("delete pod err:", err)
 		}
+		Trace.Println("deleted ", podName)
 	} else {
 		if err := podClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{
 			GracePeriodSeconds: gracePeriodSeconds,

@@ -42,7 +42,6 @@ func (c *Client) readPump() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				Error.Printf("[%d, %d]: readMessage error: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			}
-			fmt.Println(err)
 			//flush websites and close website would caused ReadMessage err and trigger defer func
 			return
 		}
@@ -53,18 +52,48 @@ func (c *Client) readPump() {
 			if c.hub.clients[*c.userIds].Head.rm.Type == 2 {
 				//1. create namespace - default use "web" as the namespace
 				if c.hub.clients[*c.userIds].Head.rm.Content.Command == "START" {
+					QUEUELIST = append(QUEUELIST, c.hub.clients[*c.userIds].Head)
+					Trace.Println("len(QUEUELIST):", len(QUEUELIST))
 					//handle socket with the frontend
 					clientSocket(c, WAITINGRESOURCE)
-					resourceOperator(c,
-						kubeconfigName,
-						"create",
-						"pod",
-						nameSpace,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
-						"10Gi",
-						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
-						c.hub.clients[*c.userIds].Head.rm.RandomName)
+					for {
+						if QUEUELIST[0] == nil {
+							Trace.Println("Waiting list is empty...quit")
+							break
+						} else if QUEUELIST[0] == c.hub.clients[*c.userIds].Head {
+							if c.hub.clients[*c.userIds].Head.ScheduleMap == BEFORECREATE {
+								// start creating
+								c.hub.clients[*c.userIds].Head.ScheduleMap = CREATING
+								resourceOperator(c,
+									kubeconfigName,
+									"create",
+									"pod",
+									nameSpace,
+									c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+									c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+									"10Gi",
+									c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
+									c.hub.clients[*c.userIds].Head.rm.RandomName)
+								break
+							} else if c.hub.clients[*c.userIds].Head.ScheduleMap == CREATING {
+								Trace.Println("Your task is creating...")
+								QUEUELIST = QUEUELIST[1:]
+								break
+							} else if c.hub.clients[*c.userIds].Head.ScheduleMap == POSTCREATE {
+								Trace.Println("Your task already created...")
+								QUEUELIST = QUEUELIST[1:]
+								break
+							}
+						} else if QUEUELIST[0] != c.hub.clients[*c.userIds].Head {
+							if QUEUELIST[0].ScheduleMap == CREATING || QUEUELIST[0].ScheduleMap == BEFORECREATE {
+								//	Trace.Printf("[%d, %d] is creating, please wait for a while...\n", QUEUELIST[0].next.client.userIds.Uid, QUEUELIST[0].next.client.userIds.Tid)
+								time.Sleep(time.Second * 3)
+							} else if QUEUELIST[0].ScheduleMap == POSTCREATE {
+								QUEUELIST = QUEUELIST[1:]
+								continue
+							}
+						}
+					}
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "STOP" {
 
 					//if c.hub.clients[*c.userIds].Head.sm.Content.StatusCode == TRAININGSTOPSUCCESS {
@@ -73,6 +102,7 @@ func (c *Client) readPump() {
 					} else {
 						clientSocket(c, ENDTRAININGSTOPFAIL)
 					}
+					c.hub.clients[*c.userIds].Head.ScheduleMap = POSTCREATE
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",
@@ -84,6 +114,10 @@ func (c *Client) readPump() {
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						c.hub.clients[*c.userIds].Head.rm.RandomName)
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
+					lock.Lock()
+					c.hub.clients[*c.userIds].Head.ScheduleMap = BEFORECREATE
+					c.hub.clients[*c.userIds].Head.ips = ""
+					lock.Unlock()
 					resourceOperator(c,
 						kubeconfigName,
 						"delete",
@@ -201,7 +235,7 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				Error.Printf("[%d, %d]: c.send channel error\n", c.userIds.Uid, c.userIds.Tid)
+				//Error.Printf("[%d, %d]: c.send channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)

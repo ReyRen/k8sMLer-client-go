@@ -11,13 +11,14 @@ type Node struct {
 	next   *Node
 }
 type headNode struct {
-	sm         *sendMsg
-	rm         *recvMsg
-	logchan    chan *sendMsg
-	signalChan chan []byte
-	ips        string
-	mideng     int // forbiden multiple 111Err111
-	next       *Node
+	sm          *sendMsg
+	rm          *recvMsg
+	logchan     chan *sendMsg
+	signalChan  chan []byte
+	ips         string
+	mideng      int // forbiden multiple 111Err111
+	next        *Node
+	ScheduleMap int
 }
 type SameIdsLinkList struct {
 	Head *headNode
@@ -32,12 +33,13 @@ func newNode(client *Client, next *Node) *Node {
 
 func NewSocketList(msg *msg) *SameIdsLinkList {
 	head := &headNode{
-		sm:         msg.sm,
-		rm:         msg.rm,
-		logchan:    make(chan *sendMsg),
-		signalChan: make(chan []byte),
-		ips:        "",
-		next:       nil,
+		sm:          msg.sm,
+		rm:          msg.rm,
+		logchan:     make(chan *sendMsg),
+		signalChan:  make(chan []byte),
+		ips:         "",
+		next:        nil,
+		ScheduleMap: BEFORECREATE,
 	}
 	return &SameIdsLinkList{head}
 }
@@ -76,8 +78,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		head.next = head.next.next
 		//if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
 		if client.hub.clients[*client.userIds].Head.sm.Type != TRAININGSTOPFAILED {
-			close(client.send)
-			close(client.sendLog)
+			//close(client.send)
+			//close(client.sendLog)
 		}
 		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 		client.addr = ""
@@ -89,8 +91,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 				current.next = current.next.next
 				//if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
 				if client.hub.clients[*client.userIds].Head.sm.Type != TRAININGSTOPFAILED {
-					close(client.send)
-					close(client.sendLog)
+					//close(client.send)
+					//close(client.sendLog)
 				}
 				Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
 				client.addr = ""

@@ -96,7 +96,7 @@ func resourceOperator(c *Client,
 			for i := 0; i < nodeNum; i++ {
 				/*_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 				labelName, &gracePeriodSeconds)*/
-				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, tmpString,
+				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, c.hub.clients[*c.userIds].Head.rm.RandomName,
 					labelName, int64(gpuNum), &gracePeriodSeconds, i, nodeNum, imageName,
 					(*selectNodes)[i].NodeNames,
 					c.hub.clients[*c.userIds].Head.rm.Content.ModelType,
@@ -104,11 +104,12 @@ func resourceOperator(c *Client,
 					"/user/"+strconv.Itoa(c.userIds.Uid)+"/"+strconv.Itoa(c.userIds.Tid))
 				for true {
 					time.Sleep(time.Second * 3)
-					podPhase := Get_pod_status(&(c.hub.clients[*c.userIds].Head.sm.Type), podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+					podPhase := Get_pod_status(&(c.hub.clients[*c.userIds].Head.sm.Type), podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
 					if podPhase == apiv1.PodRunning {
 						//c.hub.clients[*c.userIds].Head.rm.Type = 10
-						ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString)
+						ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
 						c.hub.clients[*c.userIds].Head.ips += ip + ","
+						Trace.Println(c.hub.clients[*c.userIds].Head.ips)
 						break
 					} else if podPhase == apiv1.PodPending {
 						c.hub.broadcast <- c
@@ -127,6 +128,9 @@ func resourceOperator(c *Client,
 			//exec_init_program(c, startStr+strconv.Itoa(nodeQuantity-1)+"-pod-"+endStr)
 			//handle socket with the frontend
 			clientSocket(c, RESOURCECOMPLETE)
+
+			c.hub.clients[*c.userIds].Head.ScheduleMap = POSTCREATE
+			QUEUELIST = QUEUELIST[1:]
 
 			log_back_to_frontend(c, kubeconfigName, nameSpace, kindName,
 				c.hub.clients[*c.userIds].Head.rm.RandomName,
