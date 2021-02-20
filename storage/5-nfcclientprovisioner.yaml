@@ -1,0 +1,35 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nfs-client-provisioner
+spec:
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+       serviceAccount: nfs-client-provisioner
+       containers:
+         - name: nfs-client-provisioner
+           image: registry.cn-hangzhou.aliyuncs.com/open-ali/nfs-client-provisioner
+           volumeMounts:
+             - name: nfs-client-root
+               mountPath: /persistentvolumes
+           env:
+             - name: PROVISIONER_NAME
+               value: k8s/nfs
+             - name: NFS_SERVER
+               value: 172.18.29.19
+             - name: NFS_PATH
+               value: /data/volume/v1
+       volumes:
+         - name: nfs-client-root
+           nfs:
+             server: 172.18.29.19
+             path: /data/volume/v1
