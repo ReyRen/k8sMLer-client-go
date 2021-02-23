@@ -9,7 +9,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"log"
@@ -45,13 +45,20 @@ func GetRandomString(l int) string {
 }
 
 //func LogMonitor(c *Client, rd io.Reader, startStr string, RandomName string, nodeNum int, gpuNum int) {
-func LogMonitor(c *Client, rr *rest.Request, startStr string, RandomName string, nodeNum int, gpuNum int) {
+//func LogMonitor(c *Client, rr *rest.Request, startStr string, RandomName string, nodeNum int, gpuNum int) {
+func LogMonitor(c *Client, podClient v1.PodInterface, startStr string, RandomName string, nodeNum int, gpuNum int) {
 	flag := 0
 	/*
 		TODO: workaround for stream send EOF after 4 hours
 	*/
 AGAIN:
-	podLogs, err := rr.Stream(context.TODO())
+	result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
+		Container:  "",
+		Follow:     true,
+		Previous:   false,
+		Timestamps: false, // timestamps
+	})
+	podLogs, err := result.Stream(context.TODO())
 	if err != nil {
 		Error.Printf("[%d, %d]: podLogs err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 		return
@@ -85,7 +92,7 @@ AGAIN:
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			break
 		}
-		Trace.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
+		//	Trace.Printf("[%d, %d]:log msgs: %s\n", c.userIds.Uid, c.userIds.Tid, string(line))
 		if strings.Contains(string(line), TRAINLOGSTART) || flag != 0 {
 			if strings.Contains(string(line), TRAINLOGSTART) {
 				exec_init_program(c, startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, nodeNum, gpuNum)
@@ -439,12 +446,12 @@ func log_back_to_frontend(c *Client,
 
 	//endStr, startStr := PraseTmpString(*realPvcName)
 	//fmt.Println("get pods log...")
-	result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
+	/*result := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
 		Container:  "",
 		Follow:     true,
 		Previous:   false,
 		Timestamps: false, // timestamps
-	})
+	})*/
 	// used for ftp log upload
 	result2 := podClient.GetLogs(startStr+strconv.Itoa(nodeNum-1)+"-pod-"+RandomName, &apiv1.PodLogOptions{
 		Container:  "",
@@ -467,7 +474,8 @@ func log_back_to_frontend(c *Client,
 	//go ftpUploader(c, podLogs2)
 	go ftpUploader(c, result2)
 	//LogMonitor(c, podLogs, startStr, RandomName, nodeNum, gpuNum)
-	LogMonitor(c, result, startStr, RandomName, nodeNum, gpuNum)
+	//LogMonitor(c, result, startStr, RandomName, nodeNum, gpuNum)
+	LogMonitor(c, podClient, startStr, RandomName, nodeNum, gpuNum)
 }
 
 func trimQuotes(s string) string {
