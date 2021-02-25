@@ -123,9 +123,15 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 
 	// assemble a resource limit
 	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)
-	var resourceQuantity resource.Quantity
-	resourceQuantity.Set(gpuQuantity)
-	resourceLimit["nvidia.com/gpu"] = resourceQuantity
+	var resourceQuantityGPU resource.Quantity
+	var resourceQuantityMem resource.Quantity
+	var resourceQuantityCPU resource.Quantity
+	resourceQuantityGPU.Set(gpuQuantity)
+	resourceQuantityMem.Set(gpuQuantity * 20 * 1024 * 1024 * 1024)
+	resourceQuantityCPU.Set(gpuQuantity * 4)
+	resourceLimit["nvidia.com/gpu"] = resourceQuantityGPU
+	resourceLimit[apiv1.ResourceMemory] = resourceQuantityMem
+	resourceLimit[apiv1.ResourceCPU] = resourceQuantityCPU
 
 	if continueModelURL == "" {
 		// 非续训
