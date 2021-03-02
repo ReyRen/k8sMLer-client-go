@@ -350,7 +350,19 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 			Error.Println(err)
 		}
 
-		Trace.Println(UPDATEMAP[mapKey])
+		//Trace.Println(UPDATEMAP[mapKey])
+		client.hub.clients[*client.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
+		client.hub.clients[*client.userIds].Head.rm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
+		//handle selectednodes
+		var i int
+		i = 0
+		for _, v := range strings.Split(UPDATEMAP[mapKey][2], ",") {
+			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "-")[0]
+			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "-")[1])
+			i++
+		}
+		// statuscode
+
 		/* used to update */
 	}
 }

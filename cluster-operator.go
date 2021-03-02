@@ -109,7 +109,7 @@ func resourceOperator(c *Client,
 						//c.hub.clients[*c.userIds].Head.rm.Type = 10
 						ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
 						c.hub.clients[*c.userIds].Head.ips += ip + ","
-						Trace.Println(c.hub.clients[*c.userIds].Head.ips)
+						//Trace.Println(c.hub.clients[*c.userIds].Head.ips)
 						break
 					} else if podPhase == apiv1.PodPending {
 						c.hub.broadcast <- c

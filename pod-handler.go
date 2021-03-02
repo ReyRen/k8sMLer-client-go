@@ -124,14 +124,14 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	// assemble a resource limit
 	resourceLimit := make(map[apiv1.ResourceName]resource.Quantity)
 	var resourceQuantityGPU resource.Quantity
-	var resourceQuantityMem resource.Quantity
-	var resourceQuantityCPU resource.Quantity
+	/*var resourceQuantityMem resource.Quantity
+	var resourceQuantityCPU resource.Quantity*/
 	resourceQuantityGPU.Set(gpuQuantity)
-	resourceQuantityMem.Set(gpuQuantity * 20 * 1024 * 1024 * 1024)
-	resourceQuantityCPU.Set(gpuQuantity * 4)
+	/*resourceQuantityMem.Set(gpuQuantity * 20 * 1024 * 1024 * 1024)
+	resourceQuantityCPU.Set(gpuQuantity * 4)*/
 	resourceLimit["nvidia.com/gpu"] = resourceQuantityGPU
-	resourceLimit[apiv1.ResourceMemory] = resourceQuantityMem
-	resourceLimit[apiv1.ResourceCPU] = resourceQuantityCPU
+	/*resourceLimit[apiv1.ResourceMemory] = resourceQuantityMem
+	resourceLimit[apiv1.ResourceCPU] = resourceQuantityCPU*/
 
 	if continueModelURL == "" {
 		// 非续训
@@ -565,6 +565,8 @@ func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) 
 		podconditions[0].Status == apiv1.ConditionFalse {
 		// 资源不充足的pending
 		*statusType = INSUFFICIENTPENDING
+		Trace.Println(podconditions[0].Reason)
+		Trace.Println(podconditions[0].Message)
 		Trace.Printf("%s insufficient resouces...\n", podName)
 	} else if len(podconditions) == 4 {
 		Trace.Printf("%s resouces pass...\n", podName)
