@@ -353,16 +353,25 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 		//Trace.Println(UPDATEMAP[mapKey])
 		client.hub.clients[*client.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
 		client.hub.clients[*client.userIds].Head.rm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
+		client.hub.clients[*client.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][2]
 		//handle selectednodes
 		var i int
 		i = 0
-		for _, v := range strings.Split(UPDATEMAP[mapKey][2], ",") {
+		for _, v := range strings.Split(UPDATEMAP[mapKey][3], ",") {
 			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "-")[0]
 			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "-")[1])
 			i++
 		}
-		// statuscode
+		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][4])
 
+		if statusCode >= RESOURCECOMPLETE {
+			// active log
+			log_back_to_frontend(client, kubeconfigName, nameSpace,
+				client.hub.clients[*client.userIds].Head.rm.Content.ResourceType,
+				client.hub.clients[*client.userIds].Head.rm.RandomName,
+				len(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes)),
+				(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[0].GPUNum)
+		}
 		/* used to update */
 	}
 }

@@ -543,11 +543,14 @@ func (c *Client) recordToUpdate(statusCode int) {
 	//handle map {"4-129":["zz8k5nsfzv0jljl","2","node3-1,node2-1,node2-1","8"]}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.RandomName)
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.Content.ResourceType)
+
 	var selectedNodes []string
 	for _, v := range *(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) {
 		selectedNodes = append(selectedNodes, v.NodeNames+"-"+strconv.Itoa(v.GPUNum))
 	}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strings.Join(selectedNodes, ","))
+
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(statusCode)) // socket statusId
 
 	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
