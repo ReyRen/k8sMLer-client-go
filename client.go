@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -261,7 +262,7 @@ func (c *Client) writePump() {
 	}
 }
 
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
@@ -323,4 +324,33 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	go msgs.cltmp.writePump()
 	go msgs.cltmp.readPump()
+
+	/* used to update */
+	if mod == MOD_UPDATE {
+
+		Trace.Println("entry into the update mode")
+
+		tmpbyte := make([]byte, 4096)
+
+		mapKey := strconv.Itoa(client.userIds.Uid) + "-" + strconv.Itoa(client.userIds.Tid)
+
+		//if _, ok := UPDATEMAP
+		file, error := os.OpenFile(".update", os.O_RDONLY, 0766)
+		if error != nil {
+			fmt.Println(error)
+		}
+
+		total, err := file.Read(tmpbyte)
+		if err != nil {
+			Error.Println(err)
+		}
+
+		err = json.Unmarshal(tmpbyte[:total], &UPDATEMAP) // tmpbyte[:total] for error invalid character '\x00' after top-level value
+		if err != nil {
+			Error.Println(err)
+		}
+
+		Trace.Println(UPDATEMAP[mapKey])
+		/* used to update */
+	}
 }

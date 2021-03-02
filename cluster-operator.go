@@ -29,7 +29,7 @@ func resourceOperator(c *Client,
 
 	getKubeconfigName(&kubeconfig) // fill up into the kubeconfig
 
-	// createk8s-client
+	// create k8s-client
 	var clientset *kubernetes.Clientset
 	err := CreateClient(&clientset, &kubeconfig)
 	if err != nil {
@@ -73,7 +73,7 @@ func resourceOperator(c *Client,
 				// 专有任务 -- 通过选择镜像列表
 				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
 			} else if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
-				imageName = "172.18.29.81:8080/base-images/pytorch1.6_cuda10_horovod20.0_megatron_gpt2_gjx:02-02"
+				imageName = "172.18.29.81:8080/test-images/pytorch1.6_cuda10_horovod20.0_megatron_gpt2_gjx:02-02"
 			} else if c.hub.clients[*c.userIds].Head.rm.Content.ToolBoxName == "mmdetection" {
 				imageName = IMAGE_MMDECTION
 			} else {
@@ -83,7 +83,7 @@ func resourceOperator(c *Client,
 				// 专有任务 -- 通过选择镜像列表
 				imageName = REGISTRYSERVER + "/" + c.hub.clients[*c.userIds].Head.rm.Content.ImageName
 				if c.hub.clients[*c.userIds].Head.rm.Content.ModelType == 6 {
-					imageName = "172.18.29.81:8080/base-images/pytorch1.6_cuda10_horovod20.0_megatron_gpt2_gjx:02-02"
+					imageName = "172.18.29.81:8080/test-images/pytorch1.6_cuda10_horovod20.0_megatron_gpt2_gjx:02-02"
 				}
 			} else {
 				Create_pvc(pvcClient, kindName, tmpString, labelName, caps)
@@ -152,6 +152,9 @@ func resourceOperator(c *Client,
 				Delete_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName, labelName, &gracePeriodSeconds)
 				//Delete_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+c.hub.clients[*c.userIds].Head.rm.RandomName, &gracePeriodSeconds)
 			}
+			/*used to write to udpate file*/
+			go c.removeToUpdate()
+
 			//Delete_pvc(pvcClient, kindName+"-pvc-"+c.hub.clients[*c.userIds].Head.rm.RandomName, labelName, &gracePeriodSeconds)
 		case "service":
 			Delete_service(svcClient, kindName, &gracePeriodSeconds)

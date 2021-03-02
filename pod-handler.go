@@ -150,7 +150,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + "/datasets/",
 								ReadOnly: false,
 							},
@@ -160,7 +160,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -170,7 +170,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + "/script/",
 								ReadOnly: false,
 							},
@@ -180,7 +180,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},
@@ -264,7 +264,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + "/datasets/",
 								ReadOnly: false,
 							},
@@ -274,7 +274,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
 							},
@@ -284,7 +284,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "models-parent",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + continueModelURL,
 								ReadOnly: false,
 							},
@@ -294,7 +294,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + "/script/",
 								ReadOnly: false,
 							},
@@ -304,7 +304,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
 							NFS: &apiv1.NFSVolumeSource{
-								Server:   "172.18.29.19",
+								Server:   "172.18.29.81",
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
 							},

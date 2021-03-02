@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
@@ -15,6 +16,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -160,9 +162,9 @@ func PraseTmpString(tmpString string) (string, string) {
 
 const (
 	// ip and ports with end
-	socketServer = "172.18.29.19:8020"
+	socketServer = "172.18.29.81:8020"
 	// ip of mine
-	websocketServer = "172.18.29.18:8066"
+	websocketServer = "172.18.29.80:8066"
 
 	// Time allowed to write a message to the peer.
 	writeWait = 60000000 * time.Second
@@ -221,7 +223,7 @@ const (
 	START_IN_POD  = MOUNTPATH + START_SCRIPT
 
 	// base script URL
-	BASE_SCRIPT_URL = "http://172.18.29.19/script/"
+	BASE_SCRIPT_URL = "http://172.18.29.81/script/"
 
 	// two scripts URL
 	PARAMS_TRANS_URL      = BASE_SCRIPT_URL + PARAMS_TRANS_SCRIPT
@@ -237,12 +239,14 @@ const (
 
 	//images
 	//IMAGE           = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
-	IMAGE           = "172.18.29.81:8080/base-images/tf1.14.0_torch1.2.0_py3.6_horovod0.19_opencv_sk_mplot_gjx:02-07"
+	IMAGE           = "172.18.29.81:8080/test-images/tf1.14.0_torch1.2.0_py3.6_horovod0.19_opencv_sk_mplot_gjx:02-07"
 	IMAGE_MMDECTION = "horovod:mmdection"
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
 	// ftp log
-	FTPSERVER = "172.18.29.19:21"
+	FTPSERVER = "172.18.29.81:21"
+
+	MOD_UPDATE = "update"
 )
 
 const (
@@ -259,6 +263,8 @@ var upgrader = websocket.Upgrader{
 var (
 	// 切片队列
 	QUEUELIST []*headNode
+
+	UPDATEMAP map[string][]string
 )
 
 var (
@@ -509,6 +515,7 @@ func clientSocket(c *Client, statusCode int) {
 	if err != nil {
 		Error.Printf("[%d, %d]: clientSocket send err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
+	c.recordToUpdate(statusCode)
 }
 
 func trimRsNum(selectNodes *[]selectNodes, nodeNum *int, gpuNum *int) {
@@ -518,3 +525,49 @@ func trimRsNum(selectNodes *[]selectNodes, nodeNum *int, gpuNum *int) {
 		break
 	}
 }
+
+/* used to update */
+func (c *Client) recordToUpdate(statusCode int) {
+
+	mapKey := strconv.Itoa(c.userIds.Uid) + "-" + strconv.Itoa(c.userIds.Tid)
+
+	file, error := os.OpenFile(".update", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0766)
+	if error != nil {
+		fmt.Println(error)
+	}
+
+	if _, ok := UPDATEMAP[mapKey]; ok {
+		delete(UPDATEMAP, mapKey)
+	}
+
+	//handle map
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.RandomName)
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(len(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))))        // pod num
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa((*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[0].GPUNum)) // gpu num
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(statusCode))                                                             // socket statusId
+
+	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
+	dataReady, err := json.Marshal(UPDATEMAP)
+	if err != nil {
+		Trace.Printf("recordToUpdate MarshalIndent err: %s\n", err)
+	}
+	file.Write(dataReady)
+}
+func (c *Client) removeToUpdate() {
+	mapKey := strconv.Itoa(c.userIds.Uid) + "-" + strconv.Itoa(c.userIds.Tid)
+	delete(UPDATEMAP, mapKey)
+
+	file, error := os.OpenFile(".update", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0766)
+	if error != nil {
+		fmt.Println(error)
+	}
+	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
+	dataReady, err := json.Marshal(UPDATEMAP)
+	if err != nil {
+		Trace.Printf("recordToUpdate MarshalIndent err: %s\n", err)
+	}
+	file.Write(dataReady)
+}
+
+/* used to update */

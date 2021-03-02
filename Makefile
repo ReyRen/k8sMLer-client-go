@@ -13,12 +13,15 @@ build:
 clean:
 	$(GOCLEAN)
 	rm -rf $(BINARY_NAME)
-	rm -rf $(LOG_FILE)
+	#rm -rf $(LOG_FILE)
 	rm -rf $(ERR_FILE)
 	kill -9 $(PID)
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)
+update:
+	$(GOBUILD) -o $(BINARY_NAME) -v ./...
+	./$(BINARY_NAME) -mode update
 
 # Cross compilation
 build-linux:
