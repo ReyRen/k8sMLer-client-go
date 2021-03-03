@@ -540,7 +540,7 @@ func (c *Client) recordToUpdate(statusCode int) {
 		delete(UPDATEMAP, mapKey)
 	}
 
-	//handle map {"4-129":["zz8k5nsfzv0jljl","2","node3-1,node2-1,node2-1","8"]}
+	//handle map {"4-129":["zz8k5nsfzv0jljl","2","node3-1,node2-1,node2-1","gpu","8","0"]}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.RandomName)
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.Content.ResourceType)
@@ -552,6 +552,8 @@ func (c *Client) recordToUpdate(statusCode int) {
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strings.Join(selectedNodes, ","))
 
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(statusCode)) // socket statusId
+
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], "") // updated:"", not updated:"1"
 
 	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
 	dataReady, err := json.Marshal(UPDATEMAP)
@@ -574,6 +576,63 @@ func (c *Client) removeToUpdate() {
 		Trace.Printf("recordToUpdate MarshalIndent err: %s\n", err)
 	}
 	file.Write(dataReady)
+}
+
+func (c *Client) reloadUpdateInfo(mod string) {
+	Trace.Printf("[%d. %d] entry into the [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
+
+	tmpbyte := make([]byte, 4096)
+
+	mapKey := strconv.Itoa(c.userIds.Uid) + "-" + strconv.Itoa(c.userIds.Tid)
+
+	//if _, ok := UPDATEMAP
+	file, error := os.OpenFile(".update", os.O_RDONLY, 0766)
+	if error != nil {
+		fmt.Println(error)
+	}
+
+	total, err := file.Read(tmpbyte)
+	if err != nil {
+		Error.Println(err)
+	}
+
+	err = json.Unmarshal(tmpbyte[:total], &UPDATEMAP) // tmpbyte[:total] for error invalid character '\x00' after top-level value
+	if err != nil {
+		Error.Println(err)
+	}
+
+	updated := UPDATEMAP[mapKey][5] // updated:0, not updated:1
+
+	if _, ok := UPDATEMAP[mapKey]; !ok || updated == "" {
+		//new
+		Trace.Printf("[%d. %d] is a new connection, exit [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
+	} else {
+		Trace.Printf("[%d. %d] is a updated before connection, go into [%s] mode program", c.userIds.Uid, c.userIds.Tid, mod)
+		//Trace.Println(UPDATEMAP[mapKey])
+		c.hub.clients[*c.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
+		c.hub.clients[*c.userIds].Head.rm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
+		c.hub.clients[*c.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][2]
+		//handle selectednodes
+		var i int
+		i = 0
+		for _, v := range strings.Split(UPDATEMAP[mapKey][3], ",") {
+			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "-")[0]
+			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "-")[1])
+			i++
+		}
+		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][4])
+
+		UPDATEMAP[mapKey][5] = "" // updated, reset to null(need to manually set "" to "1" in .update file)
+
+		// active logs
+		if statusCode >= RESOURCECOMPLETE {
+			log_back_to_frontend(c, kubeconfigName, nameSpace,
+				c.hub.clients[*c.userIds].Head.rm.Content.ResourceType,
+				c.hub.clients[*c.userIds].Head.rm.RandomName,
+				len(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes)),
+				(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[0].GPUNum)
+		}
+	}
 }
 
 /* used to update */

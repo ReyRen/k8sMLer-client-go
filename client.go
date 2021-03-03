@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -327,51 +326,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 
 	/* used to update */
 	if mod == MOD_UPDATE {
-
-		Trace.Println("entry into the update mode")
-
-		tmpbyte := make([]byte, 4096)
-
-		mapKey := strconv.Itoa(client.userIds.Uid) + "-" + strconv.Itoa(client.userIds.Tid)
-
-		//if _, ok := UPDATEMAP
-		file, error := os.OpenFile(".update", os.O_RDONLY, 0766)
-		if error != nil {
-			fmt.Println(error)
-		}
-
-		total, err := file.Read(tmpbyte)
-		if err != nil {
-			Error.Println(err)
-		}
-
-		err = json.Unmarshal(tmpbyte[:total], &UPDATEMAP) // tmpbyte[:total] for error invalid character '\x00' after top-level value
-		if err != nil {
-			Error.Println(err)
-		}
-
-		//Trace.Println(UPDATEMAP[mapKey])
-		client.hub.clients[*client.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
-		client.hub.clients[*client.userIds].Head.rm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
-		client.hub.clients[*client.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][2]
-		//handle selectednodes
-		var i int
-		i = 0
-		for _, v := range strings.Split(UPDATEMAP[mapKey][3], ",") {
-			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "-")[0]
-			(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "-")[1])
-			i++
-		}
-		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][4])
-
-		if statusCode >= RESOURCECOMPLETE {
-			// active log
-			log_back_to_frontend(client, kubeconfigName, nameSpace,
-				client.hub.clients[*client.userIds].Head.rm.Content.ResourceType,
-				client.hub.clients[*client.userIds].Head.rm.RandomName,
-				len(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes)),
-				(*(client.hub.clients[*client.userIds].Head.rm.Content.SelectedNodes))[0].GPUNum)
-		}
-		/* used to update */
+		client.reloadUpdateInfo(mod)
 	}
+	/* used to update */
 }
