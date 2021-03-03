@@ -601,9 +601,10 @@ func (c *Client) reloadUpdateInfo(mod string) {
 		Error.Println(err)
 	}
 
-	updated := UPDATEMAP[mapKey][5] // updated:0, not updated:1
-
-	if _, ok := UPDATEMAP[mapKey]; !ok || updated == "" {
+	if _, ok := UPDATEMAP[mapKey]; !ok {
+		//new
+		Trace.Printf("[%d. %d] is a new connection, exit [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
+	} else if UPDATEMAP[mapKey][5] == "" { // for index out of range UPDATEMAP[mapKey][5] error
 		//new
 		Trace.Printf("[%d. %d] is a new connection, exit [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
 	} else {
