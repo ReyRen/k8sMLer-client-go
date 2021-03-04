@@ -541,12 +541,12 @@ func (c *Client) recordToUpdate(statusCode int) {
 
 	//handle map {"4-129":["zz8k5nsfzv0jljl","2","node3-1,node2-1,node2-1","gpu","8","0"]}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.RandomName)           //0
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.rm.Type))   //1
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.sm.Type))   //1
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.Content.ResourceType) //2
 
 	var selectedNodes []string
 	for _, v := range *(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) {
-		selectedNodes = append(selectedNodes, v.NodeNames+"-"+strconv.Itoa(v.GPUNum))
+		selectedNodes = append(selectedNodes, v.NodeNames+"|"+strconv.Itoa(v.GPUNum))
 	}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strings.Join(selectedNodes, ",")) //3
 
@@ -610,15 +610,15 @@ func (c *Client) reloadUpdateInfo(mod string) {
 		Trace.Printf("[%d. %d] is a updated before connection, go into [%s] mode program", c.userIds.Uid, c.userIds.Tid, mod)
 		//Trace.Println(UPDATEMAP[mapKey])
 		c.hub.clients[*c.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
-		c.hub.clients[*c.userIds].Head.rm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
+		c.hub.clients[*c.userIds].Head.sm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
 		c.hub.clients[*c.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][2]
 
 		//handle selectednodes
 		var i int
 		i = 0
 		for _, v := range strings.Split(UPDATEMAP[mapKey][3], ",") {
-			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "-")[0]
-			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "-")[1])
+			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "|")[0]
+			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "|")[1])
 			i++
 		}
 		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][4])
