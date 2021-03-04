@@ -26,4 +26,6 @@ if __name__ == "__main__":
 
     data = load()
     for k in data:
-        print(k)
+        data[k][5] = "1"
+
+    store(data)

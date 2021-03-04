@@ -20,6 +20,7 @@ run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)
 update:
+	python scripts/updateset.py
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME) -mode update
 
