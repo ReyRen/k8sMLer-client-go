@@ -52,20 +52,14 @@ AGAIN:
 		Error.Printf("[%d, %d]: goftp login err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
 
-	/*	tick := time.NewTicker(20 * time.Second)
-		for true {
-			select {
-			case <-tick.C:
-				podLogs2.Close()
-			}
-		}*/
 	if err := ftp.Stor(dirPath+fileName, podLogs2); err != nil {
-		Error.Printf("[%d, %d]: goftp stor err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
+		Error.Printf("[%d, %d]: goftp stor err:%s, activate again\n", c.userIds.Uid, c.userIds.Tid, err)
+		goto AGAIN
 	} else {
 		rr := bufio.NewReader(podLogs2)
 		_, err = rr.ReadBytes('\n')
 		if err == io.EOF {
-			Trace.Println("FTP stream EOF get")
+			Trace.Println("FTP stream EOF get, activate again...")
 			podLogs2.Close()
 			goto AGAIN
 		}
