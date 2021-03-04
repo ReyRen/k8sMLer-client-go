@@ -49,7 +49,7 @@ func resourceOperator(c *Client,
 
 	switch operator {
 	case "create":
-		tmpString := GetRandomString(15)
+		tmpString := GetRandomString(8) + "-" + strconv.Itoa(c.userIds.Uid) + "-" + strconv.Itoa(c.userIds.Tid)
 		c.hub.clients[*c.userIds].Head.rm.RandomName = tmpString
 
 		Trace.Printf("[%d, %d]:create operation\n", c.userIds.Uid, c.userIds.Tid)

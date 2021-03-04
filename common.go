@@ -161,8 +161,10 @@ func PraseTmpString(tmpString string) (string, string) {
 }
 
 const (
+	DATA_WEB_SERVER = "172.18.29.81"
+
 	// ip and ports with end
-	socketServer = "172.18.29.81:8020"
+	socketServer = DATA_WEB_SERVER + ":8020"
 	// ip of mine
 	websocketServer = "172.18.29.80:8066"
 
@@ -204,9 +206,6 @@ const (
 	ENDTRAININGSTOPNORMAL = 7
 	ENDTRAININGSTOPFAIL   = 8
 
-	// 10Gi ips substring
-	//MATCHIPS = "192.168.100."
-
 	// docker image registry server
 	REGISTRYSERVER = "172.18.29.81:8080"
 
@@ -244,7 +243,7 @@ const (
 	// horovod/horovod:0.18.1-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6
 
 	// ftp log
-	FTPSERVER = "172.18.29.81:21"
+	FTPSERVER = DATA_WEB_SERVER + ":21"
 
 	MOD_UPDATE = "update"
 )
