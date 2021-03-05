@@ -132,6 +132,18 @@ func resourceOperator(c *Client,
 			c.hub.clients[*c.userIds].Head.ScheduleMap = POSTCREATE
 			QUEUELIST = QUEUELIST[1:]
 
+			/* ftp file name timestamp*/
+			timestamp := time.Now().Unix()
+			tm := time.Unix(timestamp, 0)
+			timeStamp := tm.Format("20060102030405")
+
+			fileName := strconv.Itoa(c.userIds.Uid) +
+				"_" + strconv.Itoa(c.userIds.Tid) +
+				"_" + timeStamp +
+				"_log.txt"
+			c.hub.clients[*c.userIds].Head.rm.FtpFileName = fileName
+			/* ftp file name timestamp*/
+
 			log_back_to_frontend(c, kubeconfigName, nameSpace, kindName,
 				c.hub.clients[*c.userIds].Head.rm.RandomName,
 				nodeNum, gpuNum)

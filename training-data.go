@@ -18,9 +18,10 @@ type clientsocketmsg struct {
 
 //--------------------------------------------------接受消息--------------------------------------------------
 type recvMsg struct {
-	Type       int             `json:"type"`
-	Content    *recvMsgContent `json:"content"`
-	RandomName string
+	Type        int             `json:"type"`
+	Content     *recvMsgContent `json:"content"`
+	RandomName  string
+	FtpFileName string
 }
 type recvMsgContent struct {
 	IDs                *Ids           `json:"ids"`

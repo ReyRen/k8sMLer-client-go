@@ -88,7 +88,8 @@ AGAIN:
 			goto AGAIN
 		} else if err == io.EOF {
 			//break
-			Trace.Println("LogMonitor stream get io.EOF:", err)
+			Trace.Printf("[%d, %d]: LogMonitor stream get io.EOF\n", c.userIds.Uid, c.userIds.Tid, err)
+			podLogs.Close()
 			goto AGAIN
 		} else if err != nil {
 			Error.Printf("[%d, %d]:read err: %s\n", c.userIds.Uid, c.userIds.Tid, err)
@@ -541,18 +542,19 @@ func (c *Client) recordToUpdate(statusCode int) {
 
 	//handle map {"4-129":["zz8k5nsfzv0jljl","2","node3-1,node2-1,node2-1","gpu","8","0"]}
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.RandomName)           //0
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.sm.Type))   //1
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.Content.ResourceType) //2
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.FtpFileName)          //1
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(c.hub.clients[*c.userIds].Head.sm.Type))   //2
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.rm.Content.ResourceType) //3
 
 	var selectedNodes []string
 	for _, v := range *(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes) {
 		selectedNodes = append(selectedNodes, v.NodeNames+"|"+strconv.Itoa(v.GPUNum))
 	}
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strings.Join(selectedNodes, ",")) //3
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strings.Join(selectedNodes, ",")) //4
 
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(statusCode)) // socket statusId //4
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], strconv.Itoa(statusCode)) // socket statusId //5
 
-	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], "") // updated:"", not updated:"1" //5
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], "") // updated:"", not updated:"1" //6
 
 	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
 	dataReady, err := json.Marshal(UPDATEMAP)
@@ -603,27 +605,28 @@ func (c *Client) reloadUpdateInfo(mod string) {
 	if _, ok := UPDATEMAP[mapKey]; !ok {
 		//new
 		Trace.Printf("[%d. %d] is a new connection, exit [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
-	} else if UPDATEMAP[mapKey][5] == "" { // for index out of range UPDATEMAP[mapKey][5] error
+	} else if UPDATEMAP[mapKey][6] == "" { // for index out of range UPDATEMAP[mapKey][5] error
 		//new
 		Trace.Printf("[%d. %d] is a new connection, exit [%s] mode validation program", c.userIds.Uid, c.userIds.Tid, mod)
 	} else {
 		Trace.Printf("[%d. %d] is a updated before connection, go into [%s] mode program", c.userIds.Uid, c.userIds.Tid, mod)
 		//Trace.Println(UPDATEMAP[mapKey])
 		c.hub.clients[*c.userIds].Head.rm.RandomName = UPDATEMAP[mapKey][0]
-		c.hub.clients[*c.userIds].Head.sm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][1])
-		c.hub.clients[*c.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][2]
+		c.hub.clients[*c.userIds].Head.rm.FtpFileName = UPDATEMAP[mapKey][1]
+		c.hub.clients[*c.userIds].Head.sm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][2])
+		c.hub.clients[*c.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][3]
 
 		//handle selectednodes
 		var i int
 		i = 0
-		for _, v := range strings.Split(UPDATEMAP[mapKey][3], ",") {
+		for _, v := range strings.Split(UPDATEMAP[mapKey][4], ",") {
 			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].NodeNames = strings.Split(v, "|")[0]
 			(*(c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes))[i].GPUNum, _ = strconv.Atoi(strings.Split(v, "|")[1])
 			i++
 		}
-		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][4])
+		statusCode, _ := strconv.Atoi(UPDATEMAP[mapKey][5])
 
-		UPDATEMAP[mapKey][5] = "" // updated, reset to null(need to manually set "" to "1" in .update file)
+		UPDATEMAP[mapKey][6] = "" // updated, reset to null(need to manually set "" to "1" in .update file)
 
 		// active logs
 		if statusCode >= RESOURCECOMPLETE {

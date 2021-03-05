@@ -7,22 +7,12 @@ import (
 	"io"
 	"k8s.io/client-go/rest"
 	"strconv"
-	"time"
 )
 
 //func ftpUploader(c *Client, r io.Reader) {
 func ftpUploader(c *Client, result2 *rest.Request) {
 
 	dirPath := "user/" + strconv.Itoa(c.userIds.Uid) + "/" + strconv.Itoa(c.userIds.Tid) + "/log/"
-
-	timestamp := time.Now().Unix()
-	tm := time.Unix(timestamp, 0)
-	timeStamp := tm.Format("20060102030405")
-
-	fileName := strconv.Itoa(c.userIds.Uid) +
-		"_" + strconv.Itoa(c.userIds.Tid) +
-		"_" + timeStamp +
-		"_log.txt"
 
 	var err error
 	var ftp *goftp.FTP
@@ -52,15 +42,18 @@ AGAIN:
 		Error.Printf("[%d, %d]: goftp login err:%s\n", c.userIds.Uid, c.userIds.Tid, err)
 	}
 
-	if err := ftp.Stor(dirPath+fileName, podLogs2); err != nil {
+	if err := ftp.Stor(dirPath+c.hub.clients[*c.userIds].Head.rm.FtpFileName, podLogs2); err != nil {
 		Error.Printf("[%d, %d]: goftp stor err:%s, activate again\n", c.userIds.Uid, c.userIds.Tid, err)
+		podLogs2.Close()
+		ftp.Close()
 		goto AGAIN
 	} else {
 		rr := bufio.NewReader(podLogs2)
 		_, err = rr.ReadBytes('\n')
 		if err == io.EOF {
-			Trace.Println("FTP stream EOF get, activate again...")
+			Trace.Printf("[%d, %d]: FTP stream EOF get, activate again...\n", c.userIds.Uid, c.userIds.Tid)
 			podLogs2.Close()
+			ftp.Close()
 			goto AGAIN
 		}
 	}
