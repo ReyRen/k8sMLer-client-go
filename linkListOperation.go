@@ -52,7 +52,20 @@ func (list *SameIdsLinkList) isEmpty() bool {
 // append list
 func (list *SameIdsLinkList) Append(node *Node) {
 	head := list.Head // *headNode
+	/*
+		one head only allow one node at the same time
+	*/
 	if head.next == nil {
+		head.next = node
+	} else {
+		legacy := head.next
+		legacy.client.addr = ""
+		close(legacy.client.send)
+		close(legacy.client.sendLog)
+
+		head.next = node
+	}
+	/*if head.next == nil {
 		head.next = node
 	} else {
 		current := head.next // *Node
@@ -63,7 +76,7 @@ func (list *SameIdsLinkList) Append(node *Node) {
 			current = current.next
 		}
 		current.next = node
-	}
+	}*/
 }
 
 // delete
@@ -75,6 +88,16 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	}
 	head := list.Head // *headNode
 	if head.next.client == client {
+		head.next = nil
+		Trace.Printf("[%d, %d]: %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.addr)
+		client.addr = ""
+		close(client.send)
+		close(client.sendLog)
+	} else {
+		Trace.Printf("[%d, %d]: %s not in the right list, or >2 client in one head\n", client.userIds.Uid, client.userIds.Tid, client.addr)
+	}
+	return nil
+	/*if head.next.client == client {
 		head.next = head.next.next
 		//if client.hub.clients[*client.userIds].Head.sm.Content.StatusCode != TRAININGSTOPFAILED {
 		if client.hub.clients[*client.userIds].Head.sm.Type != TRAININGSTOPFAILED {
@@ -100,8 +123,7 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 			}
 			current = current.next
 		}
-	}
-	return nil
+	}*/
 }
 
 // print
@@ -111,16 +133,21 @@ func (list *SameIdsLinkList) PrintList() {
 		Trace.Printf("This is an empty list\n")
 		return
 	}
+	if list.Head == nil {
+		Trace.Printf("no clients in head\n")
+		return
+	}
+
 	current := list.Head.next
 	i := 0
 	for ; ; i++ {
 		if current.next == nil {
 			break
 		}
-		Trace.Printf("Client%d value:%v\n", i+1, current.client.addr)
+		Trace.Printf("[%d, %d] Client%d value:%v\n", current.client.userIds.Uid, current.client.userIds.Tid, i+1, current.client.addr)
 		current = current.next
 	}
-	Trace.Printf("Client%d value:%v\n", i+1, current.client.addr)
+	Trace.Printf("[%d, %d] Client%d value:%v\n", current.client.userIds.Uid, current.client.userIds.Tid, i+1, current.client.addr)
 	return
 }
 
@@ -128,15 +155,18 @@ func (list *SameIdsLinkList) linklistRun() {
 	for true {
 		select {
 		case msgs := <-list.Head.logchan:
-			currentList := list.Head.next
+			if list.Head.next != nil {
+				list.Head.next.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
+			}
+			/*currentList := list.Head.next
 			for currentList != nil {
 				// sendlog cannot close or won't send to next client
 				currentList.client.sendLog <- []byte(strconv.Itoa(msgs.Type))
 				/*if strings.Contains(msgs.Content.Log, TRAINLOGERR) {
 					close(currentList.client.sendLog)
-				}*/
+				}
 				currentList = currentList.next
-			}
+			}*/
 		}
 	}
 }

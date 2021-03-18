@@ -88,7 +88,7 @@ AGAIN:
 			goto AGAIN
 		} else if err == io.EOF {
 			//break
-			Trace.Printf("[%d, %d]: LogMonitor stream get io.EOF\n", c.userIds.Uid, c.userIds.Tid, err)
+			Trace.Printf("[%d, %d]: LogMonitor stream get io.EOF: %s\n", c.userIds.Uid, c.userIds.Tid, err)
 			podLogs.Close()
 			goto AGAIN
 		} else if err != nil {

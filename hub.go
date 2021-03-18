@@ -1,8 +1,6 @@
 package main
 
-import (
-	"strconv"
-)
+import "strconv"
 
 type Hub struct {
 	// registered clients
@@ -31,24 +29,27 @@ func (h *Hub) run() {
 				headList.Append(newNode(msg.cltmp, nil))
 				h.clients[*msg.cltmp.userIds] = headList
 				go headList.linklistRun() // used for log control
-				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
+				//Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headList.PrintList()
 			} else {
 				headlist := h.clients[*msg.cltmp.userIds]
 				headlist.Append(newNode(msg.cltmp, nil))
 				go headlist.linklistRun()
-				Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
+				//Trace.Printf("[%d, %d]: -- ", msg.cltmp.userIds.Uid, msg.cltmp.userIds.Tid)
 				headlist.PrintList()
 			}
 		case broadcastClient := <-h.broadcast: // only broadcast client msg(small)
-			currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
+			if broadcastClient.hub.clients[*broadcastClient.userIds].Head.next != nil {
+				broadcastClient.hub.clients[*broadcastClient.userIds].Head.next.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
+			}
+			/*currentList := broadcastClient.hub.clients[*broadcastClient.userIds].Head.next
 			for currentList != nil {
 				currentList.client.send <- []byte(strconv.Itoa(broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type))
 				/*if broadcastClient.hub.clients[*broadcastClient.userIds].Head.sm.Type == TRAININGSTOPFAILED {
 					close(currentList.client.send)
-				}*/
+				}
 				currentList = currentList.next
-			}
+			}*/
 		}
 	}
 }
