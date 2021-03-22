@@ -15,6 +15,7 @@ type Client struct {
 	hub     *Hub
 	conn    *websocket.Conn
 	userIds *Ids
+	Admin   bool
 	send    chan []byte
 	sendLog chan []byte
 	addr    string
@@ -173,7 +174,7 @@ func (c *Client) writePump() {
 			if !ok {
 				// The hub closed the channel.
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				Error.Printf("[%d, %d]: c.sendLog channel error\n", c.userIds.Uid, c.userIds.Tid)
+				//Error.Printf("[%d, %d]: c.sendLog channel error\n", c.userIds.Uid, c.userIds.Tid)
 				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -292,6 +293,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 		hub:     hub,
 		conn:    conn,
 		userIds: rmtmp.Content.IDs, // initialize is null
+		Admin:   true,
 		send:    make(chan []byte),
 		sendLog: make(chan []byte),
 		addr:    conn.RemoteAddr().String(),
@@ -309,6 +311,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, mod string) {
 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
 	jsonHandler(message, &rmtmp)
+	client.Admin = rmtmp.Admin
 
 	client.hub.register <- &msgs
 	get_node_info(msgs.cltmp)
