@@ -114,6 +114,17 @@ func (c *Client) readPump() {
 						"10Gi",
 						c.hub.clients[*c.userIds].Head.rm.Content.SelectedNodes,
 						c.hub.clients[*c.userIds].Head.rm.RandomName)
+
+					if c.hub.clients[*c.userIds].Head.listCount > 1 {
+						c.hub.clients[*c.userIds].Head.sm.Type = TRAININGSTOPFAILED
+						currentTmp := c.hub.clients[*c.userIds].Head.next
+						for currentTmp != nil {
+							if !(currentTmp.client.Admin) {
+								c.hub.broadcast <- currentTmp.client
+							}
+							currentTmp = currentTmp.next
+						}
+					}
 				} else if c.hub.clients[*c.userIds].Head.rm.Content.Command == "RESTART" {
 					lock.Lock()
 					c.hub.clients[*c.userIds].Head.ScheduleMap = BEFORECREATE
