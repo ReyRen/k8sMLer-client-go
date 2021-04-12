@@ -104,8 +104,8 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 		if head.next.client == client {
 			last := head.next.next // node or nil
 			client.addr = ""
-			close(client.send)
-			close(client.sendLog)
+			/*close(client.send)
+			close(client.sendLog)*/
 			head.next = last
 			head.listCount--
 			Trace.Printf("[%d, %d](a:%v): %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.Admin, client.addr)
@@ -113,15 +113,15 @@ func (list *SameIdsLinkList) Remove(client *Client) error {
 	} else if head.listCount == 2 {
 		if head.next.client == client {
 			client.addr = ""
-			close(client.send)
-			close(client.sendLog)
+			/*close(client.send)
+			close(client.sendLog)*/
 			head.next = head.next.next
 			head.listCount--
 			Trace.Printf("[%d, %d](a:%v): %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.Admin, client.addr)
 		} else if head.next.next.client == client {
 			client.addr = ""
-			close(client.send)
-			close(client.sendLog)
+			/*	close(client.send)
+				close(client.sendLog)*/
 			head.next.next = nil
 			head.listCount--
 			Trace.Printf("[%d, %d](a:%v): %s logged out\n", client.userIds.Uid, client.userIds.Tid, client.Admin, client.addr)

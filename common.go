@@ -232,10 +232,10 @@ const (
 	WGET_START_URL        = "wget -c -P " + MOUNTPATH + " " + START_URL
 
 	// create pods args
-	INIT_TAIL   = "/etc/init.d/ssh start > /dev/null"
-	END_TAIL    = ";tail -f /dev/null"
-	MASTER_TAIL = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + ";python " + START_IN_POD + END_TAIL
-	CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
+	INIT_TAIL = "/etc/init.d/ssh start > /dev/null"
+	END_TAIL  = ";tail -f /dev/null"
+	//MASTER_TAIL = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + ";python " + START_IN_POD + END_TAIL
+	//CHILD_TAIL  = INIT_TAIL + WGET_PARAMS_TRANS_URL + WGET_START_URL + END_TAIL
 
 	//images
 	//IMAGE           = "horovod/horovod:0.19.0-tf1.14.0-torch1.2.0-mxnet1.5.0-py3.6-opencv-sk-mplot"
