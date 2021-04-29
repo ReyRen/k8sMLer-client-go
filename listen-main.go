@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/sevlyar/go-daemon"
 	"log"
 	"net/http"
@@ -55,6 +57,34 @@ func main() {
 
 func listen_main(mod string) {
 	QUEUELIST = make([]*headNode, 0)
+
+	IP_POOL := make(map[string]bool)
+	if mod == MOD_UPDATE {
+		Trace.Println("update mode start up, recovery IP-POOL...")
+
+		tmpbyte := make([]byte, 4096)
+		file, error := os.OpenFile(".ippool", os.O_RDONLY, 0766)
+		if error != nil {
+			fmt.Println(error)
+		}
+
+		total, err := file.Read(tmpbyte)
+		if err != nil {
+			Error.Println(err)
+		}
+		err = json.Unmarshal(tmpbyte[:total], &IP_POOL) // tmpbyte[:total] for error invalid character '\x00' after top-level value
+		if err != nil {
+			Error.Println(err)
+		}
+
+		//validation
+		for k, v := range IP_POOL {
+			fmt.Println("'''''''''''''''''''''''''''''''''")
+			fmt.Println(k, v)
+			fmt.Println("'''''''''''''''''''''''''''''''''")
+		}
+	}
+
 	hub := newHub()
 	go hub.run()
 

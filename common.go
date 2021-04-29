@@ -200,6 +200,9 @@ const (
 	RSRESPOND  = 2 // ftp超时重连
 	LOGRESPOND = 3 // 打印日志
 
+	MATCHIPS                  = "192.168.100."
+	INITIAL_STATIC_IP_ASSIGIN = "20"
+
 	// Status code for end
 	WAITINGRESOURCE       = 4
 	RESOURCECOMPLETE      = 5
@@ -367,8 +370,8 @@ func exec_init_program(c *Client, exec_pod_name string, nodeNum int, gpuNum int)
 		nameSpace +
 		" -it -- " +
 		"/bin/bash " + "/storage-root/scripts/params_trans.sh" + " \"" +
-		"--ip=" +
-		c.hub.clients[*c.userIds].Head.ips +
+		"--ip=172.18.36.221,172.18.36.220," +
+		//c.hub.clients[*c.userIds].Head.ips +
 		" --nodes=" +
 		strconv.Itoa(nodeNum) +
 		" --model_parameters=" +

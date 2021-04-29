@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"strings"
 )
 
 func PodReady(pods *apiv1.Pod, podName string, tmpString string,
@@ -103,7 +104,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
 	currentI int, totalI int, imageName string, bindName string, continueModelURL string, selfModelUrl string) {
 
-	headDir := "/home/ftper/ftp"
+	//headDir := "/home/ftper/ftp"
 	// continueModelURL = /ftp/user/11/166/result
 	// modelName = erhgreh.rar
 
@@ -119,9 +120,9 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	if currentI == totalI-1 {
 		// last one pod
 		//args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
-		args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py"}
+		args = []string{"echo \"Port 2222\" >> /etc/ssh/sshd_config;" + INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py"}
 	} else {
-		args = []string{INIT_TAIL + END_TAIL}
+		args = []string{"echo \"Port 2222\" >> /etc/ssh/sshd_config;" + INIT_TAIL + END_TAIL}
 		//args = []string{INIT_TAIL}
 	}
 
@@ -159,41 +160,57 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 					{
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + "/datasets/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + "/datasets/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + selfModelUrl + "/result/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + "/script/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + "/script/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + selfModelUrl + "/TensorBoardLog",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 				},
@@ -249,6 +266,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 				Affinity:          nil,
 				PriorityClassName: "",
 				Priority:          nil,
+				HostNetwork:       true,
 			},
 			Status: apiv1.PodStatus{},
 		}
@@ -273,51 +291,71 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 					{
 						Name: "datasets",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + "/datasets/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + "/datasets/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "models",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + selfModelUrl + "/result/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + selfModelUrl + "/result/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "models-parent",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + continueModelURL,
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + continueModelURL,
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "scripts",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + "/script/",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + "/script/",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 					{
 						Name: "tblog",
 						VolumeSource: apiv1.VolumeSource{
-							NFS: &apiv1.NFSVolumeSource{
+							HostPath: &apiv1.HostPathVolumeSource{
+								Path: "/storage-ftp-data" + selfModelUrl + "/TensorBoardLog",
+								Type: nil,
+							},
+							/*NFS: &apiv1.NFSVolumeSource{
 								Server:   DATA_WEB_SERVER,
 								Path:     headDir + selfModelUrl + "/TensorBoardLog",
 								ReadOnly: false,
-							},
+							},*/
 						},
 					},
 				},
@@ -377,6 +415,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 				Affinity:          nil,
 				PriorityClassName: "",
 				Priority:          nil,
+				HostNetwork:       true,
 			},
 			Status: apiv1.PodStatus{},
 		}
@@ -635,7 +674,7 @@ func Get_pod_status(statusType *int, podClient v1.PodInterface, podName string) 
 
 func get_10G_ips(podClient v1.PodInterface, podName string) string {
 	podv1, _ := podClient.Get(context.TODO(), podName, metav1.GetOptions{})
-	/*annotations := podv1.GetAnnotations()
+	annotations := podv1.GetAnnotations()
 
 	for k, v := range annotations {
 		//fmt.Println(k, v)
@@ -649,6 +688,6 @@ func get_10G_ips(podClient v1.PodInterface, podName string) string {
 			break
 		}
 	}
-	return ""*/
-	return podv1.Status.PodIP
+	return ""
+	//return podv1.Status.PodIP
 }
