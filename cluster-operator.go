@@ -94,9 +94,16 @@ func resourceOperator(c *Client,
 				}
 			}*/
 			for i := 0; i < nodeNum; i++ {
+
+				ip := getIpFromIppool()
+				if ip == "" {
+					Error.Printf("[%d, %d]:Assign speedup ip err\n", c.userIds.Uid, c.userIds.Tid)
+					return
+				}
+
 				/*_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 				labelName, &gracePeriodSeconds)*/
-				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, c.hub.clients[*c.userIds].Head.rm.RandomName,
+				Create_pod(podClient, kindName+strconv.Itoa(i)+"-pod-"+tmpString, ip, c.hub.clients[*c.userIds].Head.rm.RandomName,
 					labelName, int64(gpuNum), &gracePeriodSeconds, i, nodeNum, imageName,
 					(*selectNodes)[i].NodeNames,
 					c.hub.clients[*c.userIds].Head.rm.Content.ModelType,
@@ -107,7 +114,7 @@ func resourceOperator(c *Client,
 					podPhase := Get_pod_status(&(c.hub.clients[*c.userIds].Head.sm.Type), podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
 					if podPhase == apiv1.PodRunning {
 						//c.hub.clients[*c.userIds].Head.rm.Type = 10
-						ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
+						//ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
 						c.hub.clients[*c.userIds].Head.ips += ip + ","
 						//Trace.Println(c.hub.clients[*c.userIds].Head.ips)
 						break
@@ -144,6 +151,9 @@ func resourceOperator(c *Client,
 			c.hub.clients[*c.userIds].Head.rm.FtpFileName = fileName
 			/* ftp file name timestamp*/
 
+			/* write back to .ippool file */
+			writeIppoolToFile()
+
 			log_back_to_frontend(c, kubeconfigName, nameSpace, kindName,
 				c.hub.clients[*c.userIds].Head.rm.RandomName,
 				nodeNum, gpuNum)
@@ -166,6 +176,8 @@ func resourceOperator(c *Client,
 			}
 			/*used to write to udpate file*/
 			go c.removeToUpdate()
+			/* update ippool file*/
+			writeIppool(c.hub.clients[*c.userIds].Head.ips)
 
 			//Delete_pvc(pvcClient, kindName+"-pvc-"+c.hub.clients[*c.userIds].Head.rm.RandomName, labelName, &gracePeriodSeconds)
 		case "service":

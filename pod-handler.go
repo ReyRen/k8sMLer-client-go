@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -100,7 +103,7 @@ func PodReady(pods *apiv1.Pod, podName string, tmpString string,
 	}
 }
 
-func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
+func PodReady2(pods *apiv1.Pod, podName string, ip string, tmpString string,
 	labelName string, gpuQuantity int64, gracePeriodSeconds *int64,
 	currentI int, totalI int, imageName string, bindName string, continueModelURL string, selfModelUrl string) {
 
@@ -112,18 +115,18 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 	containName := podName + "-container-" + tmpString
 
 	// multus-cni for different interface in pods
-	//multus := make(map[string]string)
-	//multus["k8s.v1.cni.cncf.io/networks"] = "macvlan-conf"
+	multus := make(map[string]string)
+	ip = ip + "/24"
+	valueString := "[" + "{ " + "\"name\": \"macvlan-conf\",\"ips\": [ \"" + ip + "\" ]}]"
+	multus["k8s.v1.cni.cncf.io/networks"] = valueString
 
 	// get the execute args
 	var args []string
 	if currentI == totalI-1 {
 		// last one pod
-		//args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
-		args = []string{"echo \"Port 2222\" >> /etc/ssh/sshd_config;" + INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py"}
+		args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
 	} else {
-		args = []string{"echo \"Port 2222\" >> /etc/ssh/sshd_config;" + INIT_TAIL + END_TAIL}
-		//args = []string{INIT_TAIL}
+		args = []string{INIT_TAIL + END_TAIL}
 	}
 
 	// assemble a resource limit
@@ -142,9 +145,9 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 		// 非续训
 		*pods = apiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:   podName,
-				Labels: map[string]string{labelName: labelName},
-				//Annotations: multus, // need for multus-cni
+				Name:        podName,
+				Labels:      map[string]string{labelName: labelName},
+				Annotations: multus, // need for multus-cni
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
@@ -266,7 +269,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 				Affinity:          nil,
 				PriorityClassName: "",
 				Priority:          nil,
-				HostNetwork:       true,
+				//HostNetwork:       true,
 			},
 			Status: apiv1.PodStatus{},
 		}
@@ -415,7 +418,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 				Affinity:          nil,
 				PriorityClassName: "",
 				Priority:          nil,
-				HostNetwork:       true,
+				//HostNetwork:       true,
 			},
 			Status: apiv1.PodStatus{},
 		}
@@ -424,6 +427,7 @@ func PodReady2(pods *apiv1.Pod, podName string, tmpString string,
 
 func Create_pod(podClient v1.PodInterface,
 	podName string,
+	ip string,
 	tmpString string,
 	labelName string,
 	gpuQuantity int64,
@@ -439,7 +443,7 @@ func Create_pod(podClient v1.PodInterface,
 	/*
 	   TODO: 功能合并
 	*/
-	PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
+	PodReady2(&pod, podName, ip, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
 		currentI, totalI, imageName, bindName, continuousModelUrl, selfModelUrl)
 	/*if modelType == 7 || modelType == 6 {
 		PodReady2(&pod, podName, tmpString, labelName, gpuQuantity, gracePeriodSeconds,
@@ -690,4 +694,50 @@ func get_10G_ips(podClient v1.PodInterface, podName string) string {
 	}
 	return ""
 	//return podv1.Status.PodIP
+}
+
+func getIpFromIppool() string {
+	Trace.Println("Assign speed up training ips...")
+	for i := 20; i <= 200; i++ {
+		assembleIP := MATCHIPS + strconv.Itoa(i)
+
+		if _, ok := IP_POOL[assembleIP]; ok {
+			if IP_POOL[assembleIP] == true {
+				continue
+			} else {
+				Trace.Println("Assigned speed up training ips: ", assembleIP)
+				IP_POOL[assembleIP] = true
+				return assembleIP
+			}
+		} else {
+			Trace.Println("Assigned speed up training ips: ", assembleIP)
+			IP_POOL[assembleIP] = true
+			return assembleIP
+		}
+	}
+	return ""
+}
+
+func writeIppoolToFile() {
+	file, error := os.OpenFile(".ippool", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0766)
+	if error != nil {
+		fmt.Println(error)
+	}
+	defer file.Close()
+	dataReady, err := json.Marshal(IP_POOL)
+	if err != nil {
+		Trace.Printf("IP_POOL MarshalIndent err: %s\n", err)
+	}
+	file.Write(dataReady)
+}
+
+func writeIppool(ips string) {
+	reg := strings.Split(ips, ",")
+	for _, ip := range reg {
+		if ip == "" {
+			break
+		}
+		IP_POOL[string(ip)] = false
+	}
+	writeIppoolToFile()
 }

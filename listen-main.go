@@ -58,7 +58,7 @@ func main() {
 func listen_main(mod string) {
 	QUEUELIST = make([]*headNode, 0)
 
-	IP_POOL := make(map[string]bool)
+	IP_POOL = make(map[string]bool)
 	if mod == MOD_UPDATE {
 		Trace.Println("update mode start up, recovery IP-POOL...")
 
@@ -67,6 +67,7 @@ func listen_main(mod string) {
 		if error != nil {
 			fmt.Println(error)
 		}
+		defer file.Close()
 
 		total, err := file.Read(tmpbyte)
 		if err != nil {
