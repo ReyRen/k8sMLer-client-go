@@ -113,6 +113,7 @@ func PodReady2(pods *apiv1.Pod, podName string, ip string, tmpString string,
 
 	// assemble a container name
 	containName := podName + "-container-" + tmpString
+	changehostnameIP := "echo \"" + ip + " " + podName + "\" > /etc/hosts;"
 
 	// multus-cni for different interface in pods
 	multus := make(map[string]string)
@@ -123,10 +124,11 @@ func PodReady2(pods *apiv1.Pod, podName string, ip string, tmpString string,
 	// get the execute args
 	var args []string
 	if currentI == totalI-1 {
+		//args = []string{INIT_TAIL + ";sleep 3000;python /storage-root/scripts/start.py" + END_TAIL}
 		// last one pod
-		args = []string{INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
+		args = []string{changehostnameIP + INIT_TAIL + ";sleep 3;python /storage-root/scripts/start.py" + END_TAIL}
 	} else {
-		args = []string{INIT_TAIL + END_TAIL}
+		args = []string{changehostnameIP + INIT_TAIL + END_TAIL}
 	}
 
 	// assemble a resource limit
