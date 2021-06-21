@@ -78,12 +78,12 @@ func listen_main(mod string) {
 			Error.Println(err)
 		}
 
-		//validation
+		/*//validation
+		fmt.Println("'''''''''''''''''''''''''''''''''")
 		for k, v := range IP_POOL {
-			fmt.Println("'''''''''''''''''''''''''''''''''")
 			fmt.Println(k, v)
-			fmt.Println("'''''''''''''''''''''''''''''''''")
 		}
+		fmt.Println("'''''''''''''''''''''''''''''''''")*/
 	}
 
 	hub := newHub()

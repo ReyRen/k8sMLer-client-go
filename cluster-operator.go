@@ -100,6 +100,7 @@ func resourceOperator(c *Client,
 					Error.Printf("[%d, %d]:Assign speedup ip err\n", c.userIds.Uid, c.userIds.Tid)
 					return
 				}
+				c.hub.clients[*c.userIds].Head.ips += ip + ","
 
 				/*_ = Create_service(svcClient, kindName+strconv.Itoa(i)+"-svc-"+tmpString,
 				labelName, &gracePeriodSeconds)*/
@@ -115,7 +116,7 @@ func resourceOperator(c *Client,
 					if podPhase == apiv1.PodRunning {
 						//c.hub.clients[*c.userIds].Head.rm.Type = 10
 						//ip := get_10G_ips(podClient, kindName+strconv.Itoa(i)+"-pod-"+c.hub.clients[*c.userIds].Head.rm.RandomName)
-						c.hub.clients[*c.userIds].Head.ips += ip + ","
+						//c.hub.clients[*c.userIds].Head.ips += ip + ","
 						//Trace.Println(c.hub.clients[*c.userIds].Head.ips)
 						break
 					} else if podPhase == apiv1.PodPending {

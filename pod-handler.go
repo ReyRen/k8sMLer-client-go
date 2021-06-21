@@ -278,9 +278,9 @@ func PodReady2(pods *apiv1.Pod, podName string, ip string, tmpString string,
 	} else {
 		*pods = apiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:   podName,
-				Labels: map[string]string{labelName: labelName},
-				//Annotations: multus, // need for multus-cni
+				Name:        podName,
+				Labels:      map[string]string{labelName: labelName},
+				Annotations: multus, // need for multus-cni
 			},
 			Spec: apiv1.PodSpec{
 				Volumes: []apiv1.Volume{
