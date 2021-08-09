@@ -561,6 +561,8 @@ func (c *Client) recordToUpdate(statusCode int) {
 
 	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], "") // updated:"", not updated:"1" //6
 
+	UPDATEMAP[mapKey] = append(UPDATEMAP[mapKey], c.hub.clients[*c.userIds].Head.ips) // 7
+
 	//dataReady, err := json.MarshalIndent(UPDATEMAP, "", " ")
 	dataReady, err := json.Marshal(UPDATEMAP)
 	if err != nil {
@@ -622,6 +624,7 @@ func (c *Client) reloadUpdateInfo(mod string) {
 		c.hub.clients[*c.userIds].Head.rm.FtpFileName = UPDATEMAP[mapKey][1]
 		c.hub.clients[*c.userIds].Head.sm.Type, _ = strconv.Atoi(UPDATEMAP[mapKey][2])
 		c.hub.clients[*c.userIds].Head.rm.Content.ResourceType = UPDATEMAP[mapKey][3]
+		c.hub.clients[*c.userIds].Head.ips = UPDATEMAP[mapKey][7]
 
 		//handle selectednodes
 		var i int
